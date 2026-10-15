@@ -27,7 +27,11 @@ function configFile(): string {
     if ($root === false || $root === DIRECTORY_SEPARATOR) {
         fail(503, 'Document root is not configured.');
     }
-    // A sibling of the document root: not directly accessible as a web file.
+    // Never infer a config location for a nested web folder: its parent may
+    // itself be another PUBLIC document root (e.g. /public_html/master).
+    if (basename($root) !== 'public_html') {
+        fail(503, 'Use a dedicated document root ending in public_html.');
+    }
     return dirname($root) . '/.helixpanel-master/config.php';
 }
 
@@ -112,11 +116,16 @@ function upstream(string $method, string $route, ?array $payload = null): array 
         CURLOPT_TIMEOUT => 12,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
-        CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_CUSTOMREQUEST => $method,
         CURLOPT_MAXREDIRS => 0,
     ];
+    if (defined('CURLOPT_PROTOCOLS_STR')) {
+        $opts[CURLOPT_PROTOCOLS_STR] = 'https';
+    } else {
+        $opts[CURLOPT_PROTOCOLS] = CURLPROTO_HTTPS;
+    }
     if ($payload !== null) { $opts[CURLOPT_POSTFIELDS] = json_encode($payload, JSON_THROW_ON_ERROR); }
     curl_setopt_array($curl, $opts);
     $body = curl_exec($curl);
