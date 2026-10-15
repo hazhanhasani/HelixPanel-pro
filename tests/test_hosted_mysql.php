@@ -47,6 +47,20 @@ catch(RuntimeException $e) {}
 ensure(count($store->nodes())===1,'node list');
 $user=$store->handle('POST','/api/v1/users',['name'=>'user01','quota_gb'=>20,'expires_at'=>gmdate('c',time()+3600)]);
 ensure(!empty($user['id']),'add user');
+for ($i=2;$i<=25;$i++) {
+ $store->handle('POST','/api/v1/users',[
+  'name'=>sprintf('user%02d',$i),'quota_gb'=>10,'expires_at'=>gmdate('c',time()+3600)
+ ]);
+}
+ensure(count($store->users())===25,'exactly 25 free users accepted');
+try {
+ $store->handle('POST','/api/v1/users',[
+   'name'=>'user26','quota_gb'=>10,'expires_at'=>gmdate('c',time()+3600)
+ ]);
+ ensure(false,'26th free user should be rejected');
+} catch(RuntimeException $e) {
+ ensure(str_contains($e->getMessage(),'سقف کاربران'),'free user limit rejected as expected');
+}
 ensure($store->handle('GET','/api/v1/summary')['nodes']===1,'summary');
 ensure($store->license()['active']===false,'no signed license is community');
 echo "OK: standalone MySQL PHP master, enrollment, replay defense, revoke, heartbeat and licensing limits\n";
