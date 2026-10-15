@@ -360,13 +360,13 @@ def wait_healthy(timeout: int = 15) -> bool:
     return False
 
 
-def deploy(config: dict, input_file: Path, target: str, *, install_root: Path = ROOT, state: Path = STATE) -> None:
+def deploy(config: dict, input_file: Path | None, target: str, *, install_root: Path = ROOT, state: Path = STATE) -> None:
     if os.geteuid() != 0:
         raise InstallError("run installation as root (sudo)")
     identity = read_identity(state)
-    license_key = input_file.read_text().strip()
-    if not license_key:
-        raise InstallError("empty license file")
+    # No license is a deliberate Community install (1 node / 25 users).
+    # A nonempty but invalid license is rejected by the vendor distributor.
+    license_key = input_file.read_text().strip() if input_file is not None else ""
     envelope = request_release(config["api_base"], license_key, identity, target)
     payload = verify_release_envelope(envelope, config["release_public_key_pem"])
     version = payload["version"]
@@ -449,8 +449,11 @@ def main() -> int:
                 out.write(license_key + "\n")
             print("License active through:", time.strftime("%Y-%m-%d", time.gmtime(claims["expires_at"])))
             return 0
-        if not args.license_file:
-            raise InstallError("--license-file required (run 'activate' first for automatic licensing)")
+        if args.license_file is None and (STATE / "license.key").exists():
+            # Never downgrade an existing paid installation by accident.
+            existing = (STATE / "license.key").read_text(encoding="utf-8").strip()
+            if existing:
+                raise InstallError("existing paid license detected; provide --license-file for updates")
         deploy(config, args.license_file, platform_id())
         return 0
     except (InstallError, FileNotFoundError, PermissionError, subprocess.CalledProcessError) as exc:
