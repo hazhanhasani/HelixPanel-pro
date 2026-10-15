@@ -1,0 +1,50 @@
+name: Package cPanel & DirectAdmin Master Gateway
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'hosting-master/**'
+      - '.github/workflows/hosting-master-package.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-hosting-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PHP package
+        run: |
+          php -l hosting-master/public/index.php
+          php -l hosting-master/config.example.php
+          php tests/master_smoke.php | grep -q 'ورود به مستر پنل'
+      - name: Build a safe upload bundle
+        run: |
+          python3 - <<'PY'
+          import pathlib, shutil, zipfile
+          stage = pathlib.Path("/tmp/helixpanel-master-package")
+          shutil.rmtree(stage, ignore_errors=True)
+          public = stage / "upload-to-public_html"
+          private = stage / "place-outside-public_html" / ".helixpanel-master"
+          (public / "assets").mkdir(parents=True)
+          private.mkdir(parents=True)
+          shutil.copy2("hosting-master/public/index.php", public / "index.php")
+          shutil.copy2("hosting-master/public/assets/master.css", public / "assets/master.css")
+          shutil.copy2("hosting-master/config.example.php", private / "config.example.php")
+          shutil.copy2("hosting-master/README.fa.md", stage / "README.fa.md")
+          output = pathlib.Path("HelixPanel-Master-cPanel-DirectAdmin.zip")
+          with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+              for path in sorted(stage.rglob("*")):
+                  if path.is_file():
+                      zf.write(path, path.relative_to(stage))
+          print(output.name, output.stat().st_size, "bytes")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HelixPanel-Master-cPanel-DirectAdmin
+          path: HelixPanel-Master-cPanel-DirectAdmin.zip
+          retention-days: 90
+          if-no-files-found: error
