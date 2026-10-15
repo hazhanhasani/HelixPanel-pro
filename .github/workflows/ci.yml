@@ -20,6 +20,7 @@ jobs:
           php -v
           php -l hosting-master/public/index.php
           php -l hosting-master/config.example.php
+          php tests/master_smoke.php | grep -q 'ورود به مستر پنل'
           test ! -f hosting-master/public/config.php
           test ! -d hosting-master/public/.helixpanel-master
           test -f hosting-master/public/assets/master.css
