@@ -35,7 +35,7 @@ class QuickHostingSetupTest(unittest.TestCase):
             public = directory / "public_html"
             public.mkdir()
             (public / "assets").mkdir()
-            for path in ("setup.php", "index.php"):
+            for path in ("setup.php", "index.php", "license.php"):
                 shutil.copy2(ROOT / "hosting-master" / "public" / path, public / path)
             for path in ("setup.css", "master.css", "logo-mark.webp"):
                 shutil.copy2(ROOT / "hosting-master/public/assets" / path, public / "assets" / path)
@@ -115,6 +115,22 @@ class QuickHostingSetupTest(unittest.TestCase):
                 self.assertIn("'license_key' => ''", content)
                 self.assertNotIn("password-2026", finished)
                 self.assertIn("ورود به مستر پنل", opener.open(urllib.request.Request(base + "setup.php", headers={"Cookie":session_header})).read().decode())
+                probe = opener.open(base + "license.php").read().decode("utf-8")
+                import json
+                installation = json.loads(probe)
+                self.assertRegex(installation["installation_id"], r"^[a-f0-9]{32}$")
+                self.assertEqual(installation["product"], "helixpanel")
+                # Never install arbitrary licenses while the vendor public
+                # verification key has not yet been configured.
+                req = urllib.request.Request(
+                    base + "license.php",
+                    data=b'{"license_key":"untrusted.token"}',
+                    method="POST",headers={"Content-Type":"application/json"},
+                )
+                with self.assertRaises(urllib.error.HTTPError) as failure:
+                    opener.open(req,timeout=5)
+                self.assertEqual(failure.exception.code,503)
+
             finally:
                 server.terminate()
                 try:
