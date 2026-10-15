@@ -1,116 +1,109 @@
-# نصب HelixPanel Master روی cPanel و DirectAdmin
+# راهنمای نصب مستر مستقل HelixPanel روی cPanel و DirectAdmin
 
-> **Developer Preview — PHP Master Gateway (not a standalone VPN server)**
+> **نسخه آزمایشی توسعه (Developer Preview) — مستر مستقل PHP + MySQL**
 
-این بسته برای نصب رابط مدیریتی فارسی HelixPanel روی هاست‌هایی طراحی شده که **PHP** دارند، اما امکان اجرای دائمی سرویس‌های Go، systemd و موتورهای VPN روی آن‌ها فراهم نیست. UI از هاست اجرا می‌شود؛ منطق اختصاصی، لایسنس، موتورهای شبکه و API اصلی در **Control Plane روی VPS مجزا** باقی می‌مانند. هیچ کلید خصوصی امضا یا سورس اختصاصی Go در این مخزن قرار ندارد.
+**دو روش نصب، یک معماری:** مسترِ هاست و مسترِ VPS فقط عملیات مدیریت انجام می‌دهند. کاربر VPN مستقیماً به نودها وصل می‌شود؛ هیچ ترافیک یا بسته پروکسی از سرور مستر عبور نمی‌کند.
 
-## دانلود فایل ZIP آماده هاست
+- **مستر روی هاست:** PHP 8.2+ / MySQL روی cPanel یا DirectAdmin؛ ثبت کاربران، صدور توکن نود و دریافت Heartbeat مستقیماً روی همان هاست.
+- **مستر روی VPS:** Control Plane نوشته‌شده با Go روی سرور جداگانه؛ با همان API نود.
+- **نود:** برنامه `helix-node-agent` روی VPSهای ترافیکی، با اتصال **خروجی HTTPS** به مستر منتخب. موتورهای VPN بعداً از همین نود مدیریت می‌شوند.
 
-برای نصب با **File Manager** لازم نیست ریپازیتوری را Clone کنی. بسته آماده از GitHub Actions ساخته می‌شود:
+این بسته **هاست را به VPN Server تبدیل نمی‌کند** و برای کاربر هاست دیگر مستر Go جداگانه لازم نیست.
 
-**[دریافت HelixPanel-Master-cPanel-DirectAdmin.zip](https://github.com/hazhanhasani/HelixPanel-pro/actions/workflows/hosting-master-package.yml)**
+## دانلود ZIP آماده
 
-آخرین اجرای موفق Workflow را باز کن و از قسمت **Artifacts** فایل `HelixPanel-Master-cPanel-DirectAdmin` را بگیر. محتوای ZIP:
+[آخرین بسته نصب PHP Master در GitHub Actions](https://github.com/hazhanhasani/HelixPanel-pro/actions/workflows/hosting-master-package.yml) — اجرای موفق را باز کن و از قسمت **Artifacts** خروجی `HelixPanel-Master-cPanel-DirectAdmin` را بگیر.
 
-- `upload-to-public_html/` → فایل‌هایی که باید در Document Root دامنه کپی شوند.
-- `place-outside-public_html/.helixpanel-master/config.example.php` → فایل نمونه‌ای که باید در **محل خصوصی خارج از وب** با نام `config.php` قرار گیرد.
-- `README.fa.md` → راهنمای نصب.
+داخل ZIP:
 
-**فقط فایل نمونه تنظیمات داخل بسته است؛ هیچ رمز یا توکن واقعی در GitHub قرار ندارد.**
+```text
+upload-to-public_html/
+  index.php
+  node.php                  # مستر به نود؛ HTTPS JSON
+  assets/master.css
+place-outside-public_html/.helixpanel-master/
+  config.example.php        # تنظیمات خصوصی
+  store.php                 # بک‌اند مستقل PHP/MySQL
+schema.sql                  # دیتابیس
+README.fa.md
+```
 
-## پیش‌نیازها
+## مراحل نصب بدون SSH
 
-- دامنه یا زیردامنه اختصاصی با SSL معتبر؛ **HTTPS اجباری**.
-- PHP **8.2+** با افزونه‌های `curl`, `json` و `session`.
-- یک **Document Root اختصاصی که دقیقاً به نام `public_html` ختم می‌شود**؛ داخل پوشه تودرتو مثل `public_html/master/` نصب نکنید.
-- امکان ساخت پوشه خصوصی **بیرون Document Root** با File Manager.
-- VPS دارای HelixPanel Go Control Plane که API آن با HTTPS معتبر در دسترس میزبان PHP باشد (DNS، فایروال و outbound HTTPS بررسی شوند).
-- **API Token حداقل ۳۲ کاراکتر**؛ این نسخه از API فعلی استفاده می‌کند. برای محصول Production باید توکن Scope محدود و دسترسی امن بین هاست و VPS ساخته شود.
+1. در cPanel یا DirectAdmin، یک دامنه اختصاصی برای مستر بساز. سند ریشه (**Document Root**) باید به `public_html` ختم شود؛ زیردایرکتوری یا پوشه‌ای داخل `public_html` برای قرار دادن فایل‌های خصوصی مناسب نیست.
+2. گواهی SSL معتبر فعال کن. PHP نسخه 8.2 یا بالاتر به‌همراه `PDO MySQL`، `curl`، `session` و ترجیحاً `sodium` لازم است.
+3. در MySQL Databases هاست، یک دیتابیس و کاربر اختصاصی بساز و در **phpMyAdmin** فایل `schema.sql` را Import کن.
+4. فایل‌های `upload-to-public_html/` را در Document Root دامنه کپی کن.
+5. پوشه `.helixpanel-master` را **کنار** `public_html` ایجاد کن (نه داخل آن) و `store.php` را همراه با فایل `config.php` داخلش قرار بده.
+6. از `config.example.php` کپی بگیر و نام آن را `config.php` بگذار. مقادیر MySQL، رمز مدیریتی هش‌شده و در صورت خرید، لایسنس و کلید عمومی امضا را وارد کن.
+7. دامنه مستر را با HTTPS باز کن، وارد پنل شو، نود بساز و گزینه **صدور کد اتصال** را انتخاب کن.
 
-### تفاوت cPanel و DirectAdmin
+### مسیر فایل‌ها
 
-| میزبان | Document Root رایج | محل پیشنهادی تنظیمات محرمانه |
-|:---|:---|:---|
-| cPanel | `/home/USER/public_html` | `/home/USER/.helixpanel-master/config.php` |
-| DirectAdmin | `/home/USER/domains/DOMAIN/public_html` | `/home/USER/domains/DOMAIN/.helixpanel-master/config.php` |
+| سرویس | مسیر معمول فایل عمومی | مسیر خصوصی |
+|---|---|---|
+| cPanel | `/home/USER/public_html` | `/home/USER/.helixpanel-master` |
+| DirectAdmin | `/home/USER/domains/DOMAIN/public_html` | `/home/USER/domains/DOMAIN/.helixpanel-master` |
 
-**نکته:** مسیر واقعی را در File Manager کنترل کنید. اگر زیردامنه شما به جای `public_html` از مسیر دیگری استفاده می‌کند، در نسخه فعلی نصب را به یک Document Root مناسب منتقل کنید؛ این محدودیت برای جلوگیری از افشای کلیدهاست.
+مجوز فایل‌های خصوصی باید تا جای ممکن محدود باشد؛ دسترسی کاربر سرویس PHP به `config.php` و `store.php` ضروری است، اما این پوشه **نباید از وب قابل دریافت** باشد.
 
-## نصب روی cPanel (بدون SSH)
-
-1. در cPanel یک دامنه مناسب برای مستر (مانند `master.example.com`) ایجاد کن و HTTPS/AutoSSL را فعال کن.
-2. از **MultiPHP Manager**، نسخه PHP 8.2 یا بالاتر را انتخاب کن؛ از وجود cURL مطمئن شو.
-3. فایل‌های داخل `hosting-master/public/` را با File Manager در **Document Root واقعی** دامنه قرار بده؛ `index.php` باید مستقیم در همان پوشه باشد.
-4. در پوشه مادر `public_html`، یک پوشه به نام `.helixpanel-master` بساز؛ این پوشه نباید داخل هیچ مسیر عمومی قابل مشاهده باشد.
-5. فایل `hosting-master/config.example.php` را به آن پوشه منتقل کرده و به `config.php` تغییر نام بده. اطلاعات سه فیلد را طبق بخش پیکربندی جایگزین کن.
-6. مجوز پوشه را در صورت پشتیبانی `0700` و مجوز فایل را `0600` قرار بده؛ ممکن است میزبان با تنظیمات مالکیت خودش از اعداد متفاوت استفاده کند.
-7. دامنه را با **HTTPS** باز کن و با رمز مدیریت وارد شو.
-
-## نصب روی DirectAdmin
-
-1. یک دامنه با PHP 8.2+ و SSL ایجاد کن. معمولاً مسیر فایل‌ها `domains/DOMAIN/public_html` است.
-2. فایل‌های داخل `hosting-master/public/` را به `public_html` منتقل کن.
-3. پوشه `.helixpanel-master` را در کنار `public_html` (نه داخل آن) بساز.
-4. `config.example.php` را با نام `config.php` در پوشه خصوصی کپی و تنظیم کن.
-5. در **Domain Setup / PHP Version Selector** مطمئن شو که PHP مناسب فعال است. با اتصال HTTPS وارد پنل شو.
-
-## پیکربندی سه گزینه
-
-فایل `config.php` در پوشه خصوصی باید مقادیر زیر را داشته باشد:
+## تنظیمات خصوصی
 
 ```php
 <?php
 return [
-    'upstream_api_base' => 'https://core.yourdomain.com',
-    'upstream_api_token' => 'YOUR_STRONG_CONTROL_PLANE_API_TOKEN',
-    'admin_password_hash' => '$2y$12$PASTE_REAL_PASSWORD_HASH_HERE',
+  'mode' => 'standalone',
+  'db_dsn' => 'mysql:host=localhost;port=3306;dbname=helix_master;charset=utf8mb4',
+  'db_user' => 'helix_user',
+  'db_password' => 'YOUR_PRIVATE_MYSQL_PASSWORD',
+  'admin_password_hash' => 'HASH_OF_ADMIN_PASSWORD',
+  'license_key' => '',
+  'license_public_key' => '',
 ];
 ```
 
-رمز هش‌شده را روی کامپیوتر یا ترمینال قابل اعتماد خودت تولید کن؛ هرگز پسورد را برای ساخت هش در وب‌سایت‌های ناشناس وارد نکن.
+هش رمز را در ترمینال قابل اعتماد خودت بساز:
 
 ```bash
-php -r 'echo password_hash("CHANGE_TO_A_UNIQUE_LONG_PASSWORD", PASSWORD_DEFAULT), PHP_EOL;'
+php -r 'echo password_hash("REPLACE_WITH_A_LONG_UNIQUE_PASSWORD", PASSWORD_DEFAULT), PHP_EOL;'
 ```
 
-حداقل ۱۲ کاراکتر تصادفی قوی انتخاب کن. مقدار هش خروجی را در config.php قرار بده. برای امنیت بیشتر، روی دامنه Master **IP Allowlist یا Cloudflare Access** اعمال کن. اطلاعات حساس را در فایل عمومی، URL یا JavaScript قرار نده.
+`license_key` و `license_public_key` برای تایید مجوز Ed25519 در مستر PHP استفاده می‌شوند؛ اگر مجوز معتبر وجود نداشته باشد، نسخه پایه با سقف **یک نود و ۲۵ رکورد کاربر** فعال است. این محدودیت در API ثبت کاربر/نود اعمال می‌شود، ولی اتصال واقعی موتورهای VPN هنوز اضافه نشده است.
 
-## ساختار فایل‌ها
+## اتصال نود به مستر
+
+1. نود جدید را در داشبورد بساز و شناسه `node_id` و توکن تصادفی `enrollment_token` را بردار.
+2. توکن **۱۵ دقیقه** اعتبار دارد و تنها یک بار قابل مصرف است.
+3. فایل اجرایی Go `helix-node-agent` را از بیلد اختصاصی و امضاشده فروشنده روی VPS نود نصب کن (در Developer Preview باید توسط تیم توسعه ساخته شود).
+4. در تنظیمات Agent، `HELIX_MASTER_URL=https://master.example.com` و `HELIX_NODE_ID=...` را مشخص کن و توکن را در فایل محافظت‌شده `/etc/helixpanel-node/enrollment.key` قرار بده.
+5. Node Agent با درخواست خروجی HTTPS به `https://master.example.com/node.php?action=enroll` ثبت می‌شود و سپس به `...action=heartbeat` گزارش وضعیت می‌دهد.
+
+**هر دو نسخه مستر، پروتکل Node Agent یکسانی دارند.** دستورهای کامل ساخت و نصب توسعه‌ای Agent در [راهنمای نود](../docs/NODE_SETUP.fa.md) نوشته شده است.
+
+> [!WARNING]
+> تغییر یا صدور مجدد توکن اتصال، اعتبارنامه قبلی Agent را باطل می‌کند. از قرار دادن توکن در Issue، لاگ، QR عمومی یا URL خودداری کن.
+
+## تفکیک ترافیک
 
 ```text
-# Document Root (public_html)
-index.php               -> Persian master UI, login and allowed API actions
-assets/master.css       -> responsive CSS, without external CDN
-
-# Outside Document Root
-.helixpanel-master/config.php   -> private Go API token and admin hash
+کاربر VPN ───────> Node VPS ──────> اینترنت
+                      │
+               HTTPS مدیریتی
+                      ▼
+       Master (PHP shared hosting یا Go VPS)
+          ثبت کاربر / Heartbeat / مجوز
 ```
 
-این رابط اکنون از API های موجود `/api/v1/summary`، `nodes`، `users` و `license` استفاده می‌کند. نمایش نود آنلاین یا ترافیک واقعی فقط پس از پیاده‌سازی Agent در Core امکان‌پذیر است؛ در این نسخه عدد غیرواقعی ساخته نمی‌شود.
+- مستر فقط «Control Plane» است.
+- Data Plane فقط روی نود است.
+- تا زمان پیاده‌سازی Node Engine Adapter برای Xray/Sing-box/SSH، پنل فعلی فقط ثبت نود و Heartbeat دارد؛ **نمی‌توان ادعا کرد سرویس VPN از قبل عملیاتی شده است**.
+- اگر مستر قطع شود، طراحی هدف این است که موتورهای VPN روی نودها بدون نیاز به مستر به کار ادامه دهند.
 
-## محدودیت مهم معماری و لایسنس
+## حفاظت و آماده‌سازی Production
 
-- **این بسته جایگزین VPS هسته Go نیست.** فقط Master **Dashboard/Gateway** روی هاست اشتراکی نصب می‌شود.
-- مالک اکانت میزبانی می‌تواند فایل‌های PHP خود را بخواند. پس الگوریتم‌های اختصاصی، کلیدهای خصوصی لایسنس و کد اصلی نباید در PHP مستقر روی هاست خریدار قرار بگیرند.
-- اعتبارسنجی و محدودیت لایسنس همچنان در هسته خصوصی Go اجرا می‌شود.
-- این نسخه از یک توکن Bearer با دسترسی مدیریتی استفاده می‌کند؛ برای فروش تجاری باید **Scoped Tokens، MFA، اتصال mTLS یا شبکه خصوصی، لاگ ممیزی و محافظت در برابر Brute Force** پیاده‌سازی شود.
-- روی هاست اشتراکی اجرای Cron متداول است، اما Process دائم Go، نودها و تونل‌های شبکه نیازمند VPS یا زیرساخت اختصاصی هستند.
+- HTTPS واقعی، جلوگیری از Redirect به HTTP و محدودسازی IP مدیریت؛ API نودها با توکن مجزا اعتبارسنجی می‌شود.
+- در نسخه آزمایشی، PHP یک مستر مستقل و یک‌مستاجری (Single-Tenant) است. فروش چندمشتری روی یک نصب مشترک نیازمند تفکیک Tenant و مجوزهای RBAC است.
+- مستر PHP برای هر نود، توکن Agent هش‌شده نگه می‌دارد. توکن اولیه پس از جفت‌سازی باطل می‌شود. فایل‌های PHP عمومی‌اند، ولی سورس Go خصوصی باقی می‌ماند.
+- نرخ‌دهی درخواست‌ها، ثبت ممیزی، لغو دسترسی، پایگاه داده Production و ارتقای پروتکل هنوز باید قبل از فروش تکمیل شوند.
 
-## بررسی خطاها
-
-| خطا | اقدام |
-|:---|:---|
-| HTTPS is required | SSL دامنه را فعال کن |
-| Document root ... public_html | از یک داکیومنت‌روت اختصاصی و مجزا استفاده کن |
-| not configured | مسیر خصوصی config.php را بررسی کن |
-| 503 PHP requirements | نسخه PHP و افزونه cURL/Session را بررسی کن |
-| ارتباط با سرور مرکزی برقرار نشد | وضعیت VPS، URL، SSL، DNS، firewall و outbound HTTPS را بررسی کن |
-| HTTP 401 | توکن API را روی هاست و VPS هماهنگ کن |
-| HTTP 403 | لایسنس یا سطح دسترسی API را بررسی کن |
-
-### به‌روزرسانی رابط مستر
-
-فایل `index.php` و `assets/` را با نسخه جدید جایگزین کن؛ **فایل config.php خصوصی حفظ می‌شود**. سیستم انتشار و آپدیت خودکار امضاشده برای PHP Gateway هنوز به نسخه عملیاتی نرسیده و نباید با آپدیت خودکار باینری Go اشتباه گرفته شود.
-
----
-این نسخه اولین پیاده‌سازی قابل آزمون برای cPanel و DirectAdmin است، نه محصول آماده عرضه تجاری.
+تست‌های CI فعلاً شامل PHP Lint، ورود اولیه، ساخت بسته ZIP و تست‌های امنیتی Installer هستند. **اتصال روی هاست واقعی همراه با MySQL و موتور VPN هنوز آزمایش عملیاتی نشده است.**
