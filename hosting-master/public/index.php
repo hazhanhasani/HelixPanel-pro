@@ -60,17 +60,27 @@ $config = require $configPath;
 if (!is_array($config)) {
     fail(503, 'Invalid master configuration.');
 }
-$apiBase = rtrim((string)($config['upstream_api_base'] ?? ''), '/');
-$apiToken = (string)($config['upstream_api_token'] ?? '');
-$passwordHash = (string)($config['admin_password_hash'] ?? '');
-$parsed = parse_url($apiBase);
-if (!is_array($parsed) || ($parsed['scheme'] ?? '') !== 'https'
-    || empty($parsed['host']) || isset($parsed['user']) || isset($parsed['pass'])
-    || isset($parsed['query']) || isset($parsed['fragment']) || isset($parsed['path'])
-    || strlen($apiToken) < 32 || !str_starts_with($passwordHash, '$2')
-    && !str_starts_with($passwordHash, '$argon2')) {
-    fail(503, 'Master configuration invalid: HTTPS API, token and password hash are required.');
+$mode=(string)($config['mode']??'gateway');
+$standaloneStore=null;
+if ($mode==='standalone') {
+    define('HELIX_MASTER_INTERNAL',true);
+    $source=dirname($configPath).'/store.php';
+    if (!is_file($source)) fail(503,'Standalone master storage package is missing.');
+    require $source;
+    try { $standaloneStore=new HelixMasterStore($config); }
+    catch(Throwable $e) { error_log('Master database error: '.get_class($e)); fail(503,'Master MySQL database unavailable.'); }
+} else {
+    $apiBase = rtrim((string)($config['upstream_api_base'] ?? ''), '/');
+    $apiToken = (string)($config['upstream_api_token'] ?? '');
+    $parsed = parse_url($apiBase);
+    if (!is_array($parsed) || ($parsed['scheme'] ?? '') !== 'https'
+        || empty($parsed['host']) || isset($parsed['user']) || isset($parsed['pass'])
+        || isset($parsed['query']) || isset($parsed['fragment']) || isset($parsed['path'])
+        || strlen($apiToken) < 32) fail(503,'Master HTTPS upstream configuration invalid.');
 }
+$passwordHash = (string)($config['admin_password_hash']??'');
+if (!str_starts_with($passwordHash,'$2') && !str_starts_with($passwordHash,'$argon2'))
+    fail(503,'Master password hash is missing.');
 
 ini_set('session.use_strict_mode', '1');
 ini_set('session.use_only_cookies', '1');
@@ -99,7 +109,8 @@ function redirectHome(): never {
  * The privileged token never appears in client JavaScript, HTML or URLs.
  */
 function upstream(string $method, string $route, ?array $payload = null): array {
-    global $apiBase, $apiToken;
+    global $apiBase, $apiToken, $standaloneStore;
+    if ($standaloneStore instanceof HelixMasterStore) return $standaloneStore->handle($method,$route,$payload);
     if (!in_array($method, ['GET', 'POST', 'DELETE'], true)
         || !preg_match('~^/api/v1/(summary|license|nodes|users)(/[A-Za-z0-9_-]{1,100})?$~D', $route)) {
         throw new RuntimeException('درخواست API مجاز نیست.');
@@ -229,6 +240,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 'name' => $name, 'quota_gb' => $quota,
                 'expires_at' => $date->setTime(23, 59, 59)->format('Y-m-d\TH:i:s\Z'),
             ]);
+        } elseif ($action === 'enroll-node') {
+            $id=(string)($_POST['id']??'');
+            if (!preg_match('/^[a-f0-9]{32}$/D',$id)) throw new RuntimeException('شناسه نود نامعتبر است.');
+            if (!$standaloneStore) throw new RuntimeException('ساخت کد اتصال فقط در حالت مستر مستقل فعال است.');
+            $_SESSION['enrollment']=upstream('POST','/api/v1/nodes/'.$id.'/enrollment');
         } elseif ($action === 'delete-node' || $action === 'delete-user') {
             $id = (string)($_POST['id'] ?? '');
             if (!preg_match('/^[A-Za-z0-9_-]{1,100}$/D', $id)) {
@@ -256,6 +272,8 @@ try {
 }
 $notice = (string)($_SESSION['notice'] ?? '');
 unset($_SESSION['notice']);
+$enrollment = $_SESSION['enrollment'] ?? null;
+unset($_SESSION['enrollment']);
 ?>
 <!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -271,10 +289,19 @@ unset($_SESSION['notice']);
 <div class="sidebar-footer">نسخه آزمایشی · PHP Gateway<br><small>cPanel / DirectAdmin</small></div>
 </aside>
 <main class="content">
-<header class="topbar"><div><div class="eyebrow">CONTROL CENTER / MASTER</div><h1>مرکز مدیریت زیرساخت</h1><p class="muted">مدیریت یکپارچه از هاست، بدون انتشار سورس هسته</p></div>
+<header class="topbar"><div><div class="eyebrow">CONTROL CENTER / MASTER</div><h1>مرکز مدیریت زیرساخت</h1><p class="muted">مستر مدیریتی مستقل؛ داده و ترافیک VPN فقط روی نودها</p></div>
 <form method="post"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="logout"><button class="outline" type="submit">خروج امن</button></form></header>
 <?php if ($err !== ''): ?><div class="error" role="alert"><?= h($err) ?></div><?php endif; ?>
 <?php if ($notice !== ''): ?><div class="success" role="status"><?= h($notice) ?></div><?php endif; ?>
+<?php if (is_array($enrollment)): ?>
+<div class="success" role="status">
+<strong>کد اتصال نود (فقط همین بار نمایش داده می‌شود):</strong>
+<p>Node ID: <code><?= h($enrollment['node_id']??'') ?></code></p>
+<p>Enrollment Token: <code dir="ltr"><?= h($enrollment['enrollment_token']??'') ?></code></p>
+<small>اعتبار ۱۵ دقیقه. صدور مجدد، توکن قبلی نود را باطل می‌کند. برای نصب Node Agent به مستندات مراجعه کنید.</small>
+</div>
+<?php endif; ?>
+
 <section id="overview" class="stats">
 <article class="stat"><span>نودهای ثبت‌شده</span><strong><?= h($summary['nodes'] ?? count($nodes)) ?></strong><small>اطلاعات واقعی API</small></article>
 <article class="stat"><span>مشترکین</span><strong><?= h($summary['users'] ?? count($users)) ?></strong><small>بدون آمار ساختگی</small></article>
@@ -291,7 +318,7 @@ unset($_SESSION['notice']);
 <div class="table-wrap"><table><thead><tr><th>نام</th><th>کشور</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
 <?php foreach ($nodes as $node): if (!is_array($node)) continue; ?>
 <tr><td><?= h($node['name'] ?? '') ?></td><td><?= h($node['region'] ?? '') ?></td><td>در انتظار Agent</td><td>
-<form method="post"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="delete-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="danger" type="submit">حذف</button></form></td></tr>
+<?php if ($standaloneStore): ?><form method="post" class="node-enroll"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="enroll-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="outline" type="submit">صدور کد اتصال</button></form><?php endif; ?><form method="post"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="delete-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="danger" type="submit">حذف</button></form></td></tr>
 <?php endforeach; ?>
 <?php if (!$nodes): ?><tr><td colspan="4" class="empty">هنوز نودی ثبت نشده است.</td></tr><?php endif; ?>
 </tbody></table></div></section>
