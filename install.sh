@@ -159,9 +159,9 @@ elif [[ "$MODE" == "paid" ]]; then
   info "Enter your paid license activation code (used only once)"
   code=""
   IFS= read -r -s -p "Activation code (HP-...): " code </dev/tty || die "Could not read code"
-  printf '\\n' >/dev/tty
+  printf '\n' >/dev/tty
   [[ "$code" =~ ^HP-[A-Za-z0-9_-]{32}$ ]] || die "Invalid activation code format"
-  printf '%s\\n' "$code" > "${TMP_DIR}/activation.key"
+  printf '%s\n' "$code" > "${TMP_DIR}/activation.key"
   unset code
   activation_source="${TMP_DIR}/activation.key"
 fi
