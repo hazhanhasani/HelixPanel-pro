@@ -28,10 +28,11 @@ elif [[ -s "${STATE}/license.key" ]]; then
   # Backward compatibility for licenses issued before automatic activation.
   source_license="${STATE}/license.key"
 else
-  echo "No activation code or signed license is installed" >&2
-  exit 1
+  # Community installation: still verifies Ed25519-signed release manifests.
+  source_license=""
 fi
 
+update_args=()
+if [[ -n "${source_license:-}" ]]; then update_args=(--license-file "$source_license"); fi
 python3 "${ROOT}/installer.py" update \
-  --config "${ETC}/update.json" \
-  --license-file "$source_license"
+  --config "${ETC}/update.json" "${update_args[@]}"
