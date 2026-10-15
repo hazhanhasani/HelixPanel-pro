@@ -23,6 +23,7 @@ jobs:
           php -l hosting-master/private/store.php
           php -l hosting-master/public/node.php
           php -l hosting-master/public/setup.php
+          php -l hosting-master/public/license.php
           php -l hosting-master/public/assets/../../private/store.php
           php tests/master_smoke.php | grep -q 'ورود به مستر پنل'
       - name: Build a safe upload bundle
@@ -38,6 +39,7 @@ jobs:
           shutil.copy2("hosting-master/public/index.php", public / "index.php")
           shutil.copy2("hosting-master/public/node.php", public / "node.php")
           shutil.copy2("hosting-master/public/setup.php", public / "setup.php")
+          shutil.copy2("hosting-master/public/license.php", public / "license.php")
           # Read-only private storage source for the first-run wizard, guarded by PHP.
           shutil.copy2("hosting-master/private/store.php", public / "setup-store.php")
           shutil.copy2("hosting-master/public/assets/master.css", public / "assets/master.css")
