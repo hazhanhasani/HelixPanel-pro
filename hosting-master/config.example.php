@@ -14,7 +14,7 @@ return [
     'admin_password_hash'=>'REPLACE_WITH_PASSWORD_HASH',
     // Vendor-issued signed license; leave empty for 1-node / 25-user preview.
     'license_key'=>'',
-    'license_public_key'=>'',
+    'license_public_key'=>'UgMjnCA3zJnoH7Sn4CVZ-GucoqitVOdmrP6t03XlH9o',
     // Set only if deliberately using legacy gateway-to-Go mode.
     // 'mode'=>'gateway',
     // 'upstream_api_base'=>'https://your-go-control-plane.example',
