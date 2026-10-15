@@ -16,7 +16,7 @@ class PublicBootstrapTests(unittest.TestCase):
             ["bash", str(ROOT / "install.sh"), "--help"],
             check=True, text=True, capture_output=True, timeout=5,
         )
-        self.assertIn("one-command", result.stdout.lower())
+        self.assertIn("install.sh | sudo bash", result.stdout)
         self.assertIn("HelixPanel Pro", result.stdout)
 
     def test_invalid_command_is_rejected_without_side_effects(self):
