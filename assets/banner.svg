@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title desc">
+<title id="title">HelixPanel Pro</title>
+<desc id="desc">Secure self-hosted network management platform</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071324"/><stop offset=".52" stop-color="#0C1B2F"/><stop offset="1" stop-color="#10172C"/></linearGradient>
+  <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#40E2DA"/><stop offset=".5" stop-color="#4894FF"/><stop offset="1" stop-color="#9E7DF8"/></linearGradient>
+  <radialGradient id="a"><stop stop-color="#20CBE6" stop-opacity=".22"/><stop offset="1" stop-color="#20CBE6" stop-opacity="0"/></radialGradient>
+  <pattern id="grid" width="52" height="52" patternUnits="userSpaceOnUse"><path d="M52 0H0V52" stroke="#6FA0C8" opacity=".08" fill="none"/></pattern>
+  <filter id="glow"><feGaussianBlur stdDeviation="9"/></filter>
+</defs>
+<rect width="1280" height="360" rx="28" fill="url(#bg)"/>
+<rect width="1280" height="360" rx="28" fill="url(#grid)"/>
+<circle cx="1100" cy="80" r="290" fill="url(#a)"/>
+<circle cx="170" cy="320" r="240" fill="url(#a)" opacity=".7"/>
+<g fill="none" stroke="#5CCDE6" opacity=".22"><circle cx="1090" cy="170" r="118"/><circle cx="1090" cy="170" r="164"/><circle cx="1090" cy="170" r="212"/></g>
+<g transform="translate(93 72)">
+  <rect width="213" height="213" rx="48" fill="#10283E" stroke="#355470" stroke-width="2"/>
+  <path d="M46 48 V165 M164 48 V165 M46 108 H164" stroke="url(#beam)" stroke-width="20" stroke-linecap="round" fill="none"/>
+  <path d="M46 48 C96 15 115 188 164 165" stroke="#49DDD8" stroke-width="9" stroke-linecap="round" fill="none" opacity=".8"/>
+  <path d="M46 165 C96 195 115 27 164 48" stroke="#7C83F4" stroke-width="9" stroke-linecap="round" fill="none" opacity=".7"/>
+</g>
+<text x="362" y="156" fill="#ECF7FF" font-family="Arial,DejaVu Sans,sans-serif" font-weight="800" font-size="78" letter-spacing="-2">HelixPanel</text>
+<text x="892" y="156" fill="url(#beam)" font-family="Arial,DejaVu Sans,sans-serif" font-weight="800" font-size="78">Pro</text>
+<text x="370" y="203" fill="#AAC3D9" font-family="Arial,DejaVu Sans,sans-serif" font-size="23" letter-spacing="1.4">SECURE INSTALLER  /  LICENSED PLATFORM</text>
+<g font-family="Arial,DejaVu Sans,sans-serif" font-weight="600" font-size="17">
+  <rect x="371" y="236" width="150" height="40" rx="20" fill="#0B3C40" stroke="#287B81"/>
+  <circle cx="394" cy="255" r="6" fill="#2FE0BA"/><text x="408" y="263" fill="#B2F7DE">PRIVATE CORE</text>
+  <rect x="537" y="236" width="165" height="40" rx="20" fill="#183253" stroke="#385B83"/>
+  <circle cx="560" cy="255" r="6" fill="#60A8FF"/><text x="573" y="263" fill="#C4E1FF">SIGNED BUILDS</text>
+  <rect x="719" y="236" width="177" height="40" rx="20" fill="#282349" stroke="#595193"/>
+  <circle cx="742" cy="255" r="6" fill="#B29AFF"/><text x="755" y="263" fill="#E3D8FF">LICENSE GATED</text>
+</g>
+<path d="M1138 59l8 13 15-1-7 14 7 13-15-1-8 12-7-12-15 1 7-13-7-14 15 1z" fill="#60E5E0" opacity=".5"/>
+</svg>
