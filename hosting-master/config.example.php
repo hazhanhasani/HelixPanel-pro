@@ -1,20 +1,22 @@
 <?php
 declare(strict_types=1);
-/**
- * Copy to:
- *   cPanel: /home/CPANEL_USER/.helixpanel-master/config.php
- *   DirectAdmin: /home/DA_USER/domains/DOMAIN.COM/.helixpanel-master/config.php
- * The actual path is dirname(realpath(DOCUMENT_ROOT))/.helixpanel-master/config.php
- * when the document root ends in /public_html.
- *
- * This file MUST be outside every publicly served document root.
- * Permissions: directory 0700; config.php 0600 (or hosting-account equivalent).
- *
- * Password hash generation on your local machine:
- * php -r 'echo password_hash("REPLACE_WITH_A_LONG_UNIQUE_PASSWORD", PASSWORD_DEFAULT), PHP_EOL;'
+/*
+ * Copy to: dirname(realpath(DOCUMENT_ROOT))/.helixpanel-master/config.php
+ * PUBLIC DOCROOT MUST END IN /public_html.
+ * Install store.php next to this file from hosting-master/private/store.php.
+ * No source of the proprietary Go VPN control plane is needed.
  */
 return [
-    'upstream_api_base' => 'https://YOUR-PRIVATE-CONTROL-PLANE.example',
-    'upstream_api_token' => 'REPLACE_WITH_STRONG_SCOPED_TOKEN_AT_LEAST_32_CHARACTERS',
-    'admin_password_hash' => '$2y$12$REPLACE_WITH_REAL_PHP_PASSWORD_HASH',
+    'mode'=>'standalone',
+    'db_dsn'=>'mysql:host=localhost;port=3306;dbname=HELIX_DB;charset=utf8mb4',
+    'db_user'=>'HELIX_DB_USER',
+    'db_password'=>'REPLACE_WITH_DATABASE_PASSWORD',
+    'admin_password_hash'=>'REPLACE_WITH_PASSWORD_HASH',
+    // Vendor-issued signed license; leave empty for 1-node / 25-user preview.
+    'license_key'=>'',
+    'license_public_key'=>'',
+    // Set only if deliberately using legacy gateway-to-Go mode.
+    // 'mode'=>'gateway',
+    // 'upstream_api_base'=>'https://your-go-control-plane.example',
+    // 'upstream_api_token'=>'32_CHARACTERS_OR_MORE',
 ];
