@@ -1,23 +1,18 @@
-<div align="center">
+<p align="center">
+  <img src="assets/banner.svg" alt="HelixPanel Pro" width="100%" />
+</p>
 
-<img src="assets/banner.svg" alt="HelixPanel Pro — پلتفرم مدیریت سرور با نصب امن و لایسنس اختصاصی" width="100%" />
+<p align="center">
+  <a href="#-نصب-سریع"><img src="https://img.shields.io/badge/Install-One%20Command-1688F0?style=for-the-badge&amp;logo=gnubash&amp;logoColor=white" alt="One command" /></a>
+  <a href="#-امنیت-و-حفاظت-از-سورس"><img src="https://img.shields.io/badge/Release-Ed25519%20Signed-148C7E?style=for-the-badge&amp;logo=letsencrypt&amp;logoColor=white" alt="Signed release" /></a>
+  <img src="https://img.shields.io/badge/Core-Private-323C55?style=for-the-badge&amp;logo=github&amp;logoColor=white" alt="Private Core" />
+  <a href="#-وضعیت-انتشار"><img src="https://img.shields.io/badge/Status-Developer%20Preview-EBA43A?style=for-the-badge" alt="Developer preview" /></a>
+</p>
 
-<br/>
-
-[![Installation](https://img.shields.io/badge/Install-One%20Command-1688F0?style=for-the-badge&logo=gnubash&logoColor=white)](#-نصب-سریع)
-[![Security](https://img.shields.io/badge/Releases-Ed25519%20Signed-148C7E?style=for-the-badge&logo=letsencrypt&logoColor=white)](#-امنیت-و-حفاظت-از-سورس)
-[![Source](https://img.shields.io/badge/Core-Private-323C55?style=for-the-badge&logo=github&logoColor=white)](#-ساختار-توزیع)
-[![Status](https://img.shields.io/badge/Status-Developer%20Preview-EBA43A?style=for-the-badge)](#-وضعیت-انتشار)
-
-**یک تجربه یکپارچه برای نصب، مدیریت و به‌روزرسانی پنل HelixPanel**
-
-[نصب سریع](#-نصب-سریع) · [پیش‌نیازها](#-پیشنیازها) · [مدیریت پنل](#-مدیریت-و-بروزرسانی) · [امنیت](#-امنیت-و-حفاظت-از-سورس) · [پرسش‌های متداول](#-پرسشهای-متداول)
-
-</div>
+<p align="center" dir="rtl"><strong>یک تجربه یکپارچه برای نصب، مدیریت و به‌روزرسانی HelixPanel</strong></p>
+<p align="center" dir="rtl"><a href="#-نصب-سریع">نصب سریع</a> · <a href="#-پیشنیازها">پیش‌نیازها</a> · <a href="#-مدیریت-و-بروزرسانی">مدیریت پنل</a> · <a href="#-امنیت-و-حفاظت-از-سورس">امنیت</a></p>
 
 ---
-
-<div dir="rtl">
 
 ## ✨ معرفی HelixPanel Pro
 
@@ -44,13 +39,11 @@
 
 **فقط یک دستور در ترمینال سرور لینوکسی اجرا کن:**
 
-</div>
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/install.sh | sudo bash
 ```
 
-<div dir="rtl">
 
 نصب‌کننده به‌صورت تعاملی کار می‌کند: پیش‌نیازها را بررسی می‌کند، شناسه نصب ثابت می‌سازد، وضعیت سرور رسمی انتشار را می‌سنجد و **پس از دریافت لایسنس معتبر** نسخه امضاشده را نصب می‌کند.
 
@@ -59,7 +52,6 @@ curl -fsSL https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/in
 <details>
 <summary><b>🔎 روش نصب با بررسی دستی اسکریپت</b></summary>
 
-</div>
 
 ```bash
 curl -fsSLo install.sh https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/install.sh
@@ -67,11 +59,10 @@ less install.sh
 sudo bash install.sh
 ```
 
-<div dir="rtl">
 
 </details>
 
-### 🧩 پیش‌نیازها
+### 🧩 پیشنیازها
 
 | مورد | توضیح |
 |:---|:---|
@@ -84,41 +75,34 @@ sudo bash install.sh
 
 در حالت انتشار آزمایشی، حتی اگر پیش‌نیازها کامل باشند، نبود فایل اجرایی امضاشده مانع نصب خواهد شد.
 
-## 🛠️ مدیریت و به‌روزرسانی
+## 🛠️ مدیریت و بروزرسانی
 
 **بررسی وضعیت نصب و سرویس:**
 
-</div>
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/install.sh | sudo bash -s -- status
 ```
 
-<div dir="rtl">
 
 **دریافت شناسه نصب برای صدور لایسنس:**
 
-</div>
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/install.sh | sudo bash -s -- identity
 ```
 
-<div dir="rtl">
 
 **به‌روزرسانی از کانال رسمی با حفظ لایسنس نصب‌شده:**
 
-</div>
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/install.sh | sudo bash -s -- update
 ```
 
-<div dir="rtl">
 
 پس از نصب واقعی، سرویس تحت `systemd` اجرا می‌شود. دستورات کاربردی:
 
-</div>
 
 ```bash
 sudo systemctl status helixpanel
@@ -126,7 +110,6 @@ sudo journalctl -u helixpanel -n 100 --no-pager
 sudo systemctl restart helixpanel
 ```
 
-<div dir="rtl">
 
 ## 🏗️ ساختار توزیع
 
@@ -203,12 +186,8 @@ flowchart TB
 
 ---
 
-<div align="center">
-
 **HelixPanel Pro** · Secure delivery. Private core. Professional operations.
 
 © 2026 HelixPanel · [Public Installer License](LICENSE)
 
-</div>
 
-</div>
