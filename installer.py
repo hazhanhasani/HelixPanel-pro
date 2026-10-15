@@ -446,7 +446,7 @@ def main() -> int:
             args.output_license_file.parent.mkdir(parents=True, exist_ok=True)
             fd = os.open(args.output_license_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             with os.fdopen(fd, "w", encoding="utf-8") as out:
-                out.write(license_key + "\\n")
+                out.write(license_key + "\n")
             print("License active through:", time.strftime("%Y-%m-%d", time.gmtime(claims["expires_at"])))
             return 0
         if not args.license_file:
