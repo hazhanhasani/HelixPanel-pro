@@ -24,7 +24,7 @@ try {
  $id=$store->installationID();
  if (($_SERVER['REQUEST_METHOD']??'GET')==='GET') hpLicRespond(200,['product'=>'helixpanel','installation_id'=>$id]);
  if (($_SERVER['REQUEST_METHOD']??'')!=='POST') hpLicRespond(405,['error'=>'method_not_allowed']);
- if (empty($cfg['license_public_key']) || !function_exists('sodium_crypto_sign_verify_detached')) hpLicRespond(503,['error'=>'vendor_public_key_unavailable']);
+ if (HelixMasterStore::trustedLicensePublicKey($cfg) === '' || !function_exists('sodium_crypto_sign_verify_detached')) hpLicRespond(503,['error'=>'vendor_public_key_unavailable']);
  if ((int)($_SERVER['CONTENT_LENGTH']??0)>12000) hpLicRespond(413,['error'=>'too_large']);
  $raw=file_get_contents('php://input',false,null,0,12001);
  if (!is_string($raw)||strlen($raw)>12000) hpLicRespond(413,['error'=>'too_large']);
