@@ -51,7 +51,9 @@ header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 
 $configPath = configFile();
 if (!is_file($configPath)) {
-    fail(503, 'HelixPanel Master is not configured. See hosting-master/README.fa.md.');
+    // First-run browser wizard; setup.key lives outside public_html.
+    header('Location: setup.php', true, 303);
+    exit;
 }
 if (is_link($configPath)) {
     fail(503, 'Configuration must not be a symbolic link.');
@@ -305,7 +307,7 @@ unset($_SESSION['enrollment']);
 <section id="overview" class="stats">
 <article class="stat"><span>نودهای ثبت‌شده</span><strong><?= h($summary['nodes'] ?? count($nodes)) ?></strong><small>اطلاعات واقعی API</small></article>
 <article class="stat"><span>مشترکین</span><strong><?= h($summary['users'] ?? count($users)) ?></strong><small>بدون آمار ساختگی</small></article>
-<article class="stat"><span>مجوز</span><strong><?= !empty($license['active']) ? 'تجاری' : 'پایه' ?></strong><small><?= !empty($license['active']) ? 'فعال' : 'محدود / آزمایشی' ?></small></article>
+<article class="stat"><span>مجوز</span><strong><?= !empty($license['active']) ? 'تجاری' : 'رایگان' ?></strong><small><?= !empty($license['active']) ? 'فعال' : '۱ نود · ۲۵ کاربر' ?></small></article>
 <article class="stat"><span>نودهای متصل</span><strong><?= h($summary['connected_nodes'] ?? 0) ?></strong><small>Agent هنوز پیاده‌سازی نشده</small></article>
 </section>
 <section class="panel" id="nodes"><div class="section-head"><h2>مدیریت نودها</h2><span><?= count($nodes) ?> نود</span></div>
@@ -337,7 +339,7 @@ unset($_SESSION['enrollment']);
 <?php endforeach; ?>
 <?php if (!$users): ?><tr><td colspan="4" class="empty">هنوز مشترکی ثبت نشده است.</td></tr><?php endif; ?>
 </tbody></table></div></section>
-<section class="panel" id="license"><div class="section-head"><h2>وضعیت لایسنس</h2><span><?= !empty($license['active']) ? 'فعال' : 'نسخه پایه' ?></span></div>
+<section class="panel" id="license"><div class="section-head"><h2>وضعیت لایسنس</h2><span><?= !empty($license['active']) ? 'فعال' : 'Community رایگان' ?></span></div>
 <div class="license-grid">
 <div><small>شناسه لایسنس</small><strong><?= h($license['license_id'] ?? '—') ?></strong></div>
 <div><small>سقف کاربران</small><strong><?= h($license['max_users'] ?? '—') ?></strong></div>
