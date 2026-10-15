@@ -1,0 +1,15 @@
+# Customer configuration and local credentials are not source
+config.json
+license.key
+*.pem
+*.key
+*.p12
+*.secret
+.env
+.env.*
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+.DS_Store
