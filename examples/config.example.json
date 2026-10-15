@@ -1,0 +1,5 @@
+{
+  "api_base": "https://downloads.example.com",
+  "release_public_key_pem": "-----BEGIN PUBLIC KEY-----\nREPLACE_WITH_VENDOR_ED25519_SPKI_KEY\n-----END PUBLIC KEY-----\n",
+  "license_public_key": "REPLACE_WITH_VENDOR_LICENSE_PUBLIC_KEY_BASE64URL"
+}

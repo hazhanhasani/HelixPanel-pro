@@ -1,0 +1,23 @@
+name: Public installer checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  security-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check syntax and security regression tests
+        run: |
+          python3 -m py_compile installer.py
+          python3 -m unittest discover -s tests -v
+      - name: Assert proprietary source and secrets are absent
+        run: |
+          test ! -d internal
+          test ! -d cmd
+          test ! -f license.key
+          test ! -f config.json
+          test ! -f vendor-private.key
