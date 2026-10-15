@@ -301,14 +301,27 @@ def deploy(config: dict, input_file: Path, target: str, *, install_root: Path = 
         raise InstallError("empty license file")
     envelope = request_release(config["api_base"], license_key, identity, target)
     payload = verify_release_envelope(envelope, config["release_public_key_pem"])
+    version = payload["version"]
+    if not VERSION_RE.fullmatch(version):
+        raise InstallError("invalid version")
+    # Idempotent updates: a correctly activated release must not fail because
+    # the same version is already installed. License renewal is still recorded.
+    current = install_root / "current"
+    active_version = install_root / "releases" / version
+    if current.is_symlink() and active_version.is_dir() and current.resolve() == active_version.resolve():
+        (state / "license.key").write_text(license_key + "\n")
+        os.chmod(state / "license.key", 0o600)
+        if not wait_healthy():
+            system_call("systemctl", "restart", "helixpanel.service")
+            if not wait_healthy():
+                raise InstallError("installed release is unhealthy; see journalctl -u helixpanel")
+        print("HelixPanel already up to date:", version)
+        return
     with tempfile.TemporaryDirectory(prefix="helix-install-") as t:
         artifact = Path(t) / "release.tar.gz"
         binary = Path(t) / "helixpanel"
         fetch_verified_artifact(payload, config, artifact, identity, target)
         unpack_binary(artifact, binary)
-        version = payload["version"]
-        if not VERSION_RE.fullmatch(version):
-            raise InstallError("invalid version")
         (state / "license.key").write_text(license_key + "\n")
         os.chmod(state / "license.key", 0o600)
         prepare_service(config, state=state)
