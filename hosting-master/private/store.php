@@ -42,7 +42,7 @@ final class HelixMasterStore {
         $id = $this->installationID();
         $fallback = [
             'active'=>false, 'tier'=>'community', 'installation_id'=>$id,
-            'max_nodes'=>1, 'max_users'=>25, 'reason'=>'no valid license',
+            'max_nodes'=>1, 'max_users'=>25, 'reason'=>'permanent free Community edition',
         ];
         $key = (string)($this->cfg['license_key'] ?? '');
         $pub = (string)($this->cfg['license_public_key'] ?? '');
@@ -104,9 +104,19 @@ final class HelixMasterStore {
             $name=trim((string)($data['name']??''));
             $region=(string)($data['region']??'');
             if (!preg_match('/^[\pL\pN][\pL\pN._ -]{0,79}$/uD',$name) || !preg_match('/^[A-Z]{2}$/D',$region)) throw new RuntimeException('اطلاعات نود نامعتبر است.');
-            if (count($this->nodes()) >= $lic['max_nodes']) throw new RuntimeException('سقف نودهای لایسنس تکمیل شده است.');
-            $id=bin2hex(random_bytes(16));
-            $this->query('INSERT INTO hp_nodes(id,name,region) VALUES(?,?,?)',[$id,$name,$region]);
+            // Serialize quota checks across simultaneous PHP-FPM requests.
+            $this->db->beginTransaction();
+            try {
+                $this->query("SELECT meta_value FROM hp_master_meta WHERE meta_key='installation_id' FOR UPDATE");
+                $count=(int)$this->query('SELECT COUNT(*) FROM hp_nodes')->fetchColumn();
+                if ($count >= $lic['max_nodes']) throw new RuntimeException('سقف نودهای لایسنس تکمیل شده است.');
+                $id=bin2hex(random_bytes(16));
+                $this->query('INSERT INTO hp_nodes(id,name,region) VALUES(?,?,?)',[$id,$name,$region]);
+                $this->db->commit();
+            } catch (Throwable $e) {
+                if ($this->db->inTransaction()) $this->db->rollBack();
+                throw $e;
+            }
             return ['id'=>$id,'name'=>$name,'region'=>$region,'status'=>'pending_enrollment'];
         }
         if ($method==='POST' && $route==='/api/v1/users') {
@@ -116,9 +126,18 @@ final class HelixMasterStore {
             $until=strtotime($expiry);
             if (!preg_match('/^[\pL\pN][\pL\pN._ -]{0,79}$/uD',$name)
                 || !is_int($quota) || $quota<1 || $quota>100000 || $until===false || $until<=time()) throw new RuntimeException('اطلاعات کاربر نامعتبر است.');
-            if (count($this->users()) >= $lic['max_users']) throw new RuntimeException('سقف کاربران لایسنس تکمیل شده است.');
-            $id=bin2hex(random_bytes(16));
-            $this->query('INSERT INTO hp_users(id,name,quota_gb,expires_at) VALUES(?,?,?,?)',[$id,$name,$quota,gmdate('Y-m-d H:i:s',$until)]);
+            $this->db->beginTransaction();
+            try {
+                $this->query("SELECT meta_value FROM hp_master_meta WHERE meta_key='installation_id' FOR UPDATE");
+                $count=(int)$this->query('SELECT COUNT(*) FROM hp_users')->fetchColumn();
+                if ($count >= $lic['max_users']) throw new RuntimeException('سقف کاربران لایسنس تکمیل شده است.');
+                $id=bin2hex(random_bytes(16));
+                $this->query('INSERT INTO hp_users(id,name,quota_gb,expires_at) VALUES(?,?,?,?)',[$id,$name,$quota,gmdate('Y-m-d H:i:s',$until)]);
+                $this->db->commit();
+            } catch (Throwable $e) {
+                if ($this->db->inTransaction()) $this->db->rollBack();
+                throw $e;
+            }
             return ['id'=>$id];
         }
         if ($method==='DELETE' && preg_match('~^/api/v1/(nodes|users)/([a-f0-9]{32})$~D',$route,$m)) {
