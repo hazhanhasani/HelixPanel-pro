@@ -79,7 +79,7 @@ return [
   'db_password' => 'YOUR_PRIVATE_MYSQL_PASSWORD',
   'admin_password_hash' => 'HASH_OF_ADMIN_PASSWORD',
   'license_key' => '',
-  'license_public_key' => '',
+  'license_public_key' => 'UgMjnCA3zJnoH7Sn4CVZ-GucoqitVOdmrP6t03XlH9o',
 ];
 ```
 
@@ -88,6 +88,8 @@ return [
 ```bash
 php -r 'echo password_hash("REPLACE_WITH_A_LONG_UNIQUE_PASSWORD", PASSWORD_DEFAULT), PHP_EOL;'
 ```
+
+**کلید عمومی رسمی فروشنده** در نسخه تازه مستر PHP قرار گرفته است. برای نصب‌های جدید، ویزارد آن را خودکار تنظیم می‌کند. اگر نصب قبلی با کلید عمومی خالی ساخته شده، فایل‌های به‌روزشده `private/store.php` و `public/license.php` را از بسته رسمی جدید دریافت و جایگزین کن؛ پیکربندی مشتری، رمزها و کلید خصوصی فروشنده نباید منتشر شوند. قبل از فروش واقعی، تطبیق کلید خصوصی Cloudflare با همین کلید عمومی باید در بررسی سلامت فروشنده تأیید شود.
 
 `license_key` و `license_public_key` برای تایید مجوز Ed25519 در مستر PHP استفاده می‌شوند؛ اگر مجوز معتبر وجود نداشته باشد، نسخه رایگان دائمی با سقف **یک نود و ۲۵ رکورد کاربر** فعال است. این محدودیت در API ثبت کاربر/نود اعمال می‌شود، ولی اتصال واقعی موتورهای VPN هنوز اضافه نشده است.
 
