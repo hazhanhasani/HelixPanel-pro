@@ -8,7 +8,6 @@ on:
       - 'docs/dashboard.css'
       - 'docs/dashboard.js'
       - 'docs/site.css'
-      - 'docs/favicon.svg'
       - 'docs/assets/**'
       - 'docs/.nojekyll'
       - '.github/workflows/pages.yml'
