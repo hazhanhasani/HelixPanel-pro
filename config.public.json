@@ -1,0 +1,7 @@
+{
+  "status": "preview",
+  "api_base": "",
+  "release_public_key_pem": "",
+  "license_public_key": "",
+  "notice": "Vendor release distribution and licensing keys are not yet deployed. The installer must not bypass signature verification."
+}
