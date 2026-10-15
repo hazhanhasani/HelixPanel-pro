@@ -21,6 +21,7 @@ upload-to-public_html/
   index.php
   node.php                  # مستر به نود؛ HTTPS JSON
   assets/master.css
+  assets/logo-mark.webp       # Official emblem and browser icon
 place-outside-public_html/.helixpanel-master/
   config.example.php        # تنظیمات خصوصی
   store.php                 # بک‌اند مستقل PHP/MySQL
@@ -107,3 +108,8 @@ php -r 'echo password_hash("REPLACE_WITH_A_LONG_UNIQUE_PASSWORD", PASSWORD_DEFAU
 - نرخ‌دهی درخواست‌ها، ثبت ممیزی، لغو دسترسی، پایگاه داده Production و ارتقای پروتکل هنوز باید قبل از فروش تکمیل شوند.
 
 تست‌های CI فعلاً شامل PHP Lint، ورود اولیه، ساخت بسته ZIP و تست‌های امنیتی Installer هستند. **اتصال روی هاست واقعی همراه با MySQL و موتور VPN هنوز آزمایش عملیاتی نشده است.**
+
+
+## برند و لوگو
+
+لوگوی رسمی HelixPanel در فایل `public/assets/logo-mark.webp` همراه بسته نصب قرار گرفته و در صفحه ورود، داشبورد و آیکن مرورگر نمایش داده می‌شود.

@@ -36,6 +36,7 @@ jobs:
           shutil.copy2("hosting-master/public/index.php", public / "index.php")
           shutil.copy2("hosting-master/public/node.php", public / "node.php")
           shutil.copy2("hosting-master/public/assets/master.css", public / "assets/master.css")
+          shutil.copy2("hosting-master/public/assets/logo-mark.webp", public / "assets/logo-mark.webp")
           shutil.copy2("hosting-master/config.example.php", private / "config.example.php")
           shutil.copy2("hosting-master/private/store.php", private / "store.php")
           shutil.copy2("hosting-master/schema.sql", stage / "schema.sql")

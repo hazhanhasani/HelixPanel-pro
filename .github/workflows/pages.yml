@@ -9,6 +9,7 @@ on:
       - 'docs/dashboard.js'
       - 'docs/site.css'
       - 'docs/favicon.svg'
+      - 'docs/assets/**'
       - 'docs/.nojekyll'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -34,6 +35,7 @@ jobs:
           test -f docs/index.html
           test -f docs/demo.html
           test -f docs/.nojekyll
+          test -s docs/assets/logo-mark.webp
           for file in docs/index.html docs/demo.html docs/dashboard.js docs/site.css docs/dashboard.css; do
             if grep -Eiq -- 'PRIVATE KEY-----|github_pat_[a-zA-Z0-9_]{30,}|ghp_[a-zA-Z0-9]{30,}|https?://[^/[:space:]]+/api/v1/' "$file"; then
               echo "::error::Sensitive or live API reference in public preview: $file"

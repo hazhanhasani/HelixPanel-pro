@@ -195,10 +195,10 @@ if (empty($_SESSION['logged_in']) || (time() - (int)($_SESSION['last_seen'] ?? 0
     ?>
 <!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ورود | HelixPanel Master</title><link rel="stylesheet" href="assets/master.css">
+<title>ورود | HelixPanel Master</title><link rel="icon" href="assets/logo-mark.webp" type="image/webp"><link rel="stylesheet" href="assets/master.css">
 </head><body class="login-body">
 <main class="login-card">
-<div class="brand-mark">H<span>.</span></div>
+<img class="brand-mark" src="assets/logo-mark.webp" width="53" height="53" alt="لوگوی HelixPanel">
 <p class="eyebrow">HELIXPANEL · MASTER GATEWAY</p>
 <h1>مرکز مدیریت هلیکس</h1>
 <p class="muted">ورود ایمن به داشبورد مدیریتی مستقر روی هاست</p>
@@ -277,11 +277,11 @@ unset($_SESSION['enrollment']);
 ?>
 <!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HelixPanel Master | مرکز مدیریت</title>
+<title>HelixPanel Master | مرکز مدیریت</title><link rel="icon" href="assets/logo-mark.webp" type="image/webp">
 <link rel="stylesheet" href="assets/master.css"></head>
 <body class="dashboard-body">
 <aside class="sidebar">
-<div class="brand"><div class="brand-mark">H<span>.</span></div><div><strong>HELIXPANEL</strong><small>MASTER GATEWAY</small></div></div>
+<div class="brand"><img class="brand-mark" src="assets/logo-mark.webp" width="53" height="53" alt="لوگوی HelixPanel"><div><strong>HELIXPANEL</strong><small>MASTER GATEWAY</small></div></div>
 <nav aria-label="فهرست">
 <a href="#overview">◈ نمای کلی</a><a href="#nodes">▣ مدیریت نودها</a>
 <a href="#users">♧ مشترکین</a><a href="#license">◇ لایسنس</a>

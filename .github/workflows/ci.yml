@@ -24,6 +24,7 @@ jobs:
           test ! -f hosting-master/public/config.php
           test ! -d hosting-master/public/.helixpanel-master
           test -f hosting-master/public/assets/master.css
+          test -s hosting-master/public/assets/logo-mark.webp
       - name: Assert proprietary source and secrets are absent
         run: |
           test ! -d internal

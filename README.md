@@ -1,5 +1,6 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="HelixPanel Pro" width="100%" />
+  <img src="assets/logo-mark.webp" alt="لوگوی رسمی HelixPanel Pro" width="112" height="112" />
+  <h1 align="center">HelixPanel Pro</h1>
 </p>
 
 <p align="center">
@@ -32,6 +33,10 @@
 > این یک **نمونه تعاملی UI** است و نشان‌دهنده آماده‌بودن همه قابلیت‌های VPN، Node Engine و لایسنس تجاری در نسخه عملیاتی نیست. فایل‌های Pages فقط شامل HTML/CSS/JavaScript عمومی‌اند و هیچ سورس اصلی یا رمز محرمانه‌ای در آن‌ها وجود ندارد.
 
 ---
+
+## 🎨 هویت بصری رسمی
+
+نشان HelixPanel با فرم هندسی **H**، گره‌های شبکه و مسیر مارپیچی، در همه رابط‌های کاربری و دموی عمومی استفاده می‌شود. [مشاهده نشان اصلی](assets/logo-mark.webp).
 
 ## ✨ معرفی HelixPanel Pro
 
