@@ -131,7 +131,7 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
          $cfg=[
            'mode'=>'standalone','db_dsn'=>$dsn,'db_user'=>$user,'db_password'=>$pass,
            'admin_password_hash'=>password_hash($adminPass,PASSWORD_DEFAULT),
-           'license_key'=>'','license_public_key'=>'',
+           'license_key'=>'','license_public_key'=>'UgMjnCA3zJnoH7Sn4CVZ-GucoqitVOdmrP6t03XlH9o',
          ];
          $contents="<?php\ndeclare(strict_types=1);\nreturn ".var_export($cfg,true).";\n";
          $out=@fopen($configFile,'x');
