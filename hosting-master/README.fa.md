@@ -4,6 +4,20 @@
 
 این بسته برای نصب رابط مدیریتی فارسی HelixPanel روی هاست‌هایی طراحی شده که **PHP** دارند، اما امکان اجرای دائمی سرویس‌های Go، systemd و موتورهای VPN روی آن‌ها فراهم نیست. UI از هاست اجرا می‌شود؛ منطق اختصاصی، لایسنس، موتورهای شبکه و API اصلی در **Control Plane روی VPS مجزا** باقی می‌مانند. هیچ کلید خصوصی امضا یا سورس اختصاصی Go در این مخزن قرار ندارد.
 
+## دانلود فایل ZIP آماده هاست
+
+برای نصب با **File Manager** لازم نیست ریپازیتوری را Clone کنی. بسته آماده از GitHub Actions ساخته می‌شود:
+
+**[دریافت HelixPanel-Master-cPanel-DirectAdmin.zip](https://github.com/hazhanhasani/HelixPanel-pro/actions/workflows/hosting-master-package.yml)**
+
+آخرین اجرای موفق Workflow را باز کن و از قسمت **Artifacts** فایل `HelixPanel-Master-cPanel-DirectAdmin` را بگیر. محتوای ZIP:
+
+- `upload-to-public_html/` → فایل‌هایی که باید در Document Root دامنه کپی شوند.
+- `place-outside-public_html/.helixpanel-master/config.example.php` → فایل نمونه‌ای که باید در **محل خصوصی خارج از وب** با نام `config.php` قرار گیرد.
+- `README.fa.md` → راهنمای نصب.
+
+**فقط فایل نمونه تنظیمات داخل بسته است؛ هیچ رمز یا توکن واقعی در GitHub قرار ندارد.**
+
 ## پیش‌نیازها
 
 - دامنه یا زیردامنه اختصاصی با SSL معتبر؛ **HTTPS اجباری**.
