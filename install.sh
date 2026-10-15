@@ -152,22 +152,22 @@ elif [[ ! -s "$license_path" ]]; then
   if [[ ! -r /dev/tty ]]; then
     die "A terminal is required for the first activation (connect over SSH -t)."
   fi
-  printf '\\n'
+  printf '\n'
   info "Enter your activation code once. Future renewals and updates are automatic."
   code=""
   IFS= read -r -s -p "Activation code (HP-...): " code </dev/tty || die "Could not read activation code"
-  printf '\\n' >/dev/tty
+  printf '\n' >/dev/tty
   [[ "$code" =~ ^HP-[A-Za-z0-9_-]{32}$ ]] || die "Activation code format is invalid"
-  printf '%s\\n' "$code" > "${TMP_DIR}/activation.key"
+  printf '%s\n' "$code" > "${TMP_DIR}/activation.key"
   unset code
   activation_source="${TMP_DIR}/activation.key"
 fi
 
 if [[ -n "$activation_source" ]]; then
   info "Activating or renewing the vendor-signed license"
-  python3 "${TMP_DIR}/installer.py" activate \\
-    --config "${TMP_DIR}/config.json" \\
-    --activation-code-file "$activation_source" \\
+  python3 "${TMP_DIR}/installer.py" activate \
+    --config "${TMP_DIR}/config.json" \
+    --activation-code-file "$activation_source" \
     --output-license-file "${TMP_DIR}/license.key" ||
     die "Automatic activation failed; existing installation is unchanged."
   license_path="${TMP_DIR}/license.key"
