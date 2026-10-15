@@ -22,11 +22,12 @@ usage() {
 HelixPanel Pro — Secure Installer
 Usage:
   curl -fsSL https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/install.sh | sudo bash
+  curl -fsSL https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/install.sh | sudo bash -s -- paid
   curl -fsSL https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/install.sh | sudo bash -s -- update
   curl -fsSL https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/install.sh | sudo bash -s -- status
   curl -fsSL https://raw.githubusercontent.com/hazhanhasani/HelixPanel-pro/main/install.sh | sudo bash -s -- identity
 
-Commands: install (default), update, status, identity, help
+Commands: install (free default), paid (enter activation code), update, status, identity, help
 Supports: systemd-based Linux x86_64/arm64 with Python >= 3.10.
 The vendor's production distribution API and signed public configuration
 must be operational before licensed installation can complete.
@@ -35,7 +36,7 @@ HELP
 
 case "$MODE" in
   help|-h|--help) usage; exit 0 ;;
-  install|update|status|identity) ;;
+  install|paid|update|status|identity) ;;
   *) usage; die "Unknown command: $MODE" ;;
 esac
 
@@ -143,39 +144,50 @@ fi
 license_path="${INSTALLATION_STATE}/license.key"
 activation_path="/etc/helixpanel/activation.key"
 activation_source=""
+operation="$MODE"
+[[ "$MODE" == "paid" ]] && operation="install"
+
+# Free mode is automatic: a fresh installation does not require an activation
+# code, and the vendor still sends a signed release from a trusted endpoint.
+# An existing paid installation always reuses its protected activation code.
 if [[ -s "$activation_path" ]]; then
   activation_source="$activation_path"
-elif [[ ! -s "$license_path" ]]; then
-  if [[ "$MODE" == "update" ]]; then
-    die "No license or activation code found. Run installation first."
-  fi
+elif [[ "$MODE" == "paid" ]]; then
   if [[ ! -r /dev/tty ]]; then
-    die "A terminal is required for the first activation (connect over SSH -t)."
+    die "A terminal is required to enter the paid activation code (use SSH -t)."
   fi
-  printf '\n'
-  info "Enter your activation code once. Future renewals and updates are automatic."
+  info "Enter your paid license activation code (used only once)"
   code=""
-  IFS= read -r -s -p "Activation code (HP-...): " code </dev/tty || die "Could not read activation code"
-  printf '\n' >/dev/tty
-  [[ "$code" =~ ^HP-[A-Za-z0-9_-]{32}$ ]] || die "Activation code format is invalid"
-  printf '%s\n' "$code" > "${TMP_DIR}/activation.key"
+  IFS= read -r -s -p "Activation code (HP-...): " code </dev/tty || die "Could not read code"
+  printf '\\n' >/dev/tty
+  [[ "$code" =~ ^HP-[A-Za-z0-9_-]{32}$ ]] || die "Invalid activation code format"
+  printf '%s\\n' "$code" > "${TMP_DIR}/activation.key"
   unset code
   activation_source="${TMP_DIR}/activation.key"
 fi
 
 if [[ -n "$activation_source" ]]; then
-  info "Activating or renewing the vendor-signed license"
+  info "Refreshing vendor-signed commercial license"
   python3 "${TMP_DIR}/installer.py" activate \
     --config "${TMP_DIR}/config.json" \
     --activation-code-file "$activation_source" \
     --output-license-file "${TMP_DIR}/license.key" ||
-    die "Automatic activation failed; existing installation is unchanged."
+    die "License activation failed; no unverified release installed"
   license_path="${TMP_DIR}/license.key"
 fi
 
+# Preserve a preexisting paid license. In a new Community install there is
+# deliberately no license file and the Go core enforces 1 node / 25 users.
+installer_license_arg=()
+if [[ -s "$license_path" ]]; then
+  installer_license_arg=(--license-file "$license_path")
+else
+  info "Community license: 1 node + 25 users, no activation code required"
+fi
+
 info "Verifying license and downloading signed release"
-python3 "${TMP_DIR}/installer.py" "$MODE" \
-  --config "${TMP_DIR}/config.json" --license-file "$license_path" ||
+python3 "${TMP_DIR}/installer.py" "$operation" \
+  --config "${TMP_DIR}/config.json" "${installer_license_arg[@]}" ||
   die "Install/update failed. Existing deployment has not been intentionally removed."
 
 # Only after a successful signed installation: pin a root-owned updater and
