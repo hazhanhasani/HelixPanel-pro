@@ -66,6 +66,12 @@ class QuickHostingSetupTest(unittest.TestCase):
                 else:
                     self.fail("PHP server never became available")
                 html = response.read().decode("utf-8")
+                # Secure cookies intentionally never travel over HTTP. This
+                # local-only CI server emulates HTTPS via PHP variables, so
+                # explicitly attach the session cookie to mock the TLS browser.
+                session = next((c for c in cookies if c.name == "hp_setup"), None)
+                self.assertIsNotNone(session)
+                session_header = f"hp_setup={session.value}"
                 self.assertIn("راه‌اندازی مستر پنل", html)
                 csrf = re.search(r'name="csrf" value="([a-f0-9]{64})"', html)
                 self.assertIsNotNone(csrf)
@@ -89,7 +95,7 @@ class QuickHostingSetupTest(unittest.TestCase):
                     req = urllib.request.Request(
                         base + "setup.php",
                         data=urllib.parse.urlencode(payload).encode(),
-                        headers={"Content-Type": "application/x-www-form-urlencoded"},
+                        headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": session_header},
                         method="POST",
                     )
                     return opener.open(req, timeout=10).read().decode("utf-8")
@@ -108,7 +114,7 @@ class QuickHostingSetupTest(unittest.TestCase):
                 self.assertIn("'mode' => 'standalone'", content)
                 self.assertIn("'license_key' => ''", content)
                 self.assertNotIn("password-2026", finished)
-                self.assertIn("ورود به مستر پنل", opener.open(base + "setup.php").read().decode())
+                self.assertIn("ورود به مستر پنل", opener.open(urllib.request.Request(base + "setup.php", headers={"Cookie":session_header})).read().decode())
             finally:
                 server.terminate()
                 try:
