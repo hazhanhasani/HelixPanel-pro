@@ -15,6 +15,14 @@ jobs:
           bash -n install.sh
           python3 -m py_compile installer.py
           python3 -m unittest discover -s tests -v
+      - name: Validate cPanel / DirectAdmin PHP master gateway
+        run: |
+          php -v
+          php -l hosting-master/public/index.php
+          php -l hosting-master/config.example.php
+          test ! -f hosting-master/public/config.php
+          test ! -d hosting-master/public/.helixpanel-master
+          test -f hosting-master/public/assets/master.css
       - name: Assert proprietary source and secrets are absent
         run: |
           test ! -d internal
