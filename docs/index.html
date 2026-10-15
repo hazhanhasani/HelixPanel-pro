@@ -13,7 +13,7 @@
   <div class="site-wrap">
     <header class="site-header shell">
       <a class="brand" href="./" aria-label="HelixPanel صفحه اصلی"><img class="brand-symbol" src="assets/logo-mark.webp" width="43" height="43" alt="لوگوی HelixPanel"><span class="brand-text">HELIX<span class="brand-tone">PANEL</span><small>PRO / MANAGEMENT PLATFORM</small></span></a>
-      <nav class="site-nav" aria-label="ناوبری سایت"><a href="#features">قابلیت‌ها</a><a href="#architecture">معماری</a><a href="https://github.com/hazhanhasani/HelixPanel-pro" target="_blank" rel="noopener noreferrer">گیت‌هاب ↗</a></nav>
+      <nav class="site-nav" aria-label="ناوبری سایت"><a href="#features">قابلیت‌ها</a><a href="#architecture">معماری</a><a href="#pricing">تعرفه‌ها</a><a href="https://github.com/hazhanhasani/HelixPanel-pro" target="_blank" rel="noopener noreferrer">گیت‌هاب ↗</a></nav>
       <a class="btn btn-outline header-cta" href="demo.html">ورود به دمو <span aria-hidden="true">←</span></a>
     </header>
     <main>
@@ -44,6 +44,36 @@
         <div class="feature-grid"><article class="feature-card"><span class="feature-icon">◈</span><h3>نمای کلی شفاف</h3><p>کارت‌های آماری، نمودار ترافیک نمونه، آخرین رویدادها و وضعیت ظرفیت.</p></article><article class="feature-card"><span class="feature-icon">▣</span><h3>مدیریت نودها</h3><p>نمایش موقعیت سرورها، سلامت نمونه و مفهوم اتصال Agent به مستر.</p></article><article class="feature-card"><span class="feature-icon">♧</span><h3>مشترکین و پلن‌ها</h3><p>جست‌وجوی کاربر، افزودن کاربر آزمایشی و نمایش طرح‌های نمونه.</p></article><article class="feature-card"><span class="feature-icon">◇</span><h3>لایسنس اختصاصی</h3><p>نمایش نحوه ارائه ظرفیت و اعتبار لایسنس با اطلاعات نمونه.</p></article></div>
       </section>
       <section class="architecture shell" id="architecture"><div><span class="section-kicker">CONTROL PLANE / DATA PLANE</span><h2>مدیریت در مستر؛<br>ترافیک فقط روی نود</h2><p>طراحی HelixPanel مستر را از پردازش ترافیک VPN جدا می‌کند. در معماری هدف، مستر می‌تواند روی VPS یا به‌شکل مستقل با PHP/MySQL روی هاست باشد و نودها مستقیماً ترافیک کاربران را عبور دهند.</p><a class="text-link" href="https://github.com/hazhanhasani/HelixPanel-pro/blob/main/docs/NODE_SETUP.fa.md" target="_blank" rel="noopener noreferrer">آشنایی با معماری نودها ↗</a></div><div class="architecture-diagram"><div class="arch-box master"><span>◉</span><b>Master Control</b><small>cPanel / DirectAdmin / VPS</small></div><div class="arch-connector"><span>HTTPS · Management</span></div><div class="arch-nodes"><div>Node A<small>VPN Traffic</small></div><div>Node B<small>VPN Traffic</small></div><div>Node C<small>VPN Traffic</small></div></div><p>کاربران نهایی مستقیماً به نودها متصل می‌شوند</p></div></section>
+      <section class="pricing shell" id="pricing" aria-label="تعرفه‌های لایسنس HelixPanel">
+        <div class="section-lead"><span class="section-kicker">HELIXPANEL LICENSING</span><h2>از یک نود شروع کنید؛ همراه کسب‌وکارتان رشد کنید.</h2><p>تعرفه‌های اولیه لایسنس بر حسب دلار آمریکا هستند. پرداخت توسط رمزارز انجام خواهد شد؛ خرید آنلاین تا پایان آزمایش درگاه و فعال‌سازی خودکار فعلاً غیرفعال است.</p></div>
+        <div class="pricing-grid">
+          <article class="pricing-card">
+            <span class="pricing-type">COMMUNITY</span><h3>رایگان دائمی</h3><div class="pricing-amount"><strong>$0</strong><span>بدون انقضا</span></div>
+            <p>برای آشنایی و شروع پروژه بدون نیاز به کلید خرید.</p>
+            <div class="pricing-spec">◈ ۱ نود فعال</div><div class="pricing-spec">◈ ۲۵ کاربر</div><div class="pricing-spec">◈ بدون نیاز به پرداخت</div>
+            <a class="btn btn-soft pricing-action" href="https://github.com/hazhanhasani/HelixPanel-pro#-نصب-سریع">راهنمای نصب رایگان ↗</a>
+          </article>
+          <article class="pricing-card">
+            <span class="pricing-type">STARTER</span><h3>استارتر</h3><div class="pricing-amount"><strong>$9.90</strong><span>ماهانه</span></div>
+            <p>برای فروشندگان کوچک و اولین نودهای تجاری.</p>
+            <div class="pricing-spec">◈ ۳ نود فعال</div><div class="pricing-spec">◈ ۲۵۰ کاربر</div><div class="pricing-spec">◈ سالانه: $99</div>
+            <a class="btn btn-soft pricing-action" href="https://t.me/HelixLicenseBot">ربات فروش · به‌زودی ↗</a>
+          </article>
+          <article class="pricing-card featured">
+            <span class="pricing-type">PROFESSIONAL · پیشنهادی</span><h3>حرفه‌ای</h3><div class="pricing-amount"><strong>$24.90</strong><span>ماهانه</span></div>
+            <p>برای کسب‌وکارهای رو‌به‌رشد با چندین موقعیت.</p>
+            <div class="pricing-spec">◈ ۱۰ نود فعال</div><div class="pricing-spec">◈ ۱٬۵۰۰ کاربر</div><div class="pricing-spec">◈ سالانه: $249</div>
+            <a class="btn btn-primary pricing-action" href="https://t.me/HelixLicenseBot">مشاهده تعرفه‌ها در ربات ↗</a>
+          </article>
+          <article class="pricing-card">
+            <span class="pricing-type">BUSINESS</span><h3>تجاری</h3><div class="pricing-amount"><strong>$49.90</strong><span>ماهانه</span></div>
+            <p>برای عملیات چندسروری با ظرفیت بالاتر.</p>
+            <div class="pricing-spec">◈ ۳۰ نود فعال</div><div class="pricing-spec">◈ ۵٬۰۰۰ کاربر</div><div class="pricing-spec">◈ سالانه: $499</div>
+            <a class="btn btn-soft pricing-action" href="https://t.me/HelixLicenseBot">ربات فروش · به‌زودی ↗</a>
+          </article>
+        </div>
+        <p class="pricing-note">اشتراک ماهانه ۳۰ روز و سالانه ۳۶۵ روز است؛ تعرفه‌های سالانه حدود ۱۷٪ به‌صرفه‌تر هستند. ظرفیت Enterprise با هماهنگی و قیمت توافقی ارائه خواهد شد. هر لایسنس متعلق به یک نصب مستقل است.</p>
+      </section>
       <section class="last-cta shell"><div><span class="section-kicker">آماده بررسی هستید؟</span><h2>یک دور داخل پنل بزنید.</h2><p>بدون لایسنس، بدون اتصال واقعی، بدون خطر تغییر اطلاعات.</p></div><a class="btn btn-primary" href="demo.html">بازکردن پیش‌نمایش کامل ←</a></section>
     </main>
     <footer class="site-footer shell"><span>© 2026 HelixPanel Pro</span><span>دموی طراحی · داده‌ها کاملاً نمونه هستند</span><a href="https://github.com/hazhanhasani/HelixPanel-pro" target="_blank" rel="noopener noreferrer">GitHub ↗</a></footer>
