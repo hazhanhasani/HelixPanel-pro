@@ -20,6 +20,8 @@ jobs:
         run: |
           php -l hosting-master/public/index.php
           php -l hosting-master/config.example.php
+          php -l hosting-master/private/store.php
+          php -l hosting-master/public/node.php
           php tests/master_smoke.php | grep -q 'ورود به مستر پنل'
       - name: Build a safe upload bundle
         run: |
@@ -32,8 +34,11 @@ jobs:
           (public / "assets").mkdir(parents=True)
           private.mkdir(parents=True)
           shutil.copy2("hosting-master/public/index.php", public / "index.php")
+          shutil.copy2("hosting-master/public/node.php", public / "node.php")
           shutil.copy2("hosting-master/public/assets/master.css", public / "assets/master.css")
           shutil.copy2("hosting-master/config.example.php", private / "config.example.php")
+          shutil.copy2("hosting-master/private/store.php", private / "store.php")
+          shutil.copy2("hosting-master/schema.sql", stage / "schema.sql")
           shutil.copy2("hosting-master/README.fa.md", stage / "README.fa.md")
           output = pathlib.Path("HelixPanel-Master-cPanel-DirectAdmin.zip")
           with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as zf:
