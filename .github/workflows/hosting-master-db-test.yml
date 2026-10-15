@@ -5,6 +5,7 @@ on:
     paths:
       - 'hosting-master/**'
       - 'tests/test_hosted_mysql.php'
+      - 'tests/test_hosting_setup.py'
       - '.github/workflows/hosting-master-db-test.yml'
   workflow_dispatch:
 permissions:
@@ -44,4 +45,6 @@ jobs:
           php -l hosting-master/private/store.php
           php -l hosting-master/public/node.php
           php -l hosting-master/public/index.php
+          php -l hosting-master/public/setup.php
           php tests/test_hosted_mysql.php
+          python3 -m unittest discover -s tests -p test_hosting_setup.py -v
