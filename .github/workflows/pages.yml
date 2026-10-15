@@ -1,0 +1,48 @@
+name: Publish HelixPanel Public Preview
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/demo.html'
+      - 'docs/dashboard.css'
+      - 'docs/dashboard.js'
+      - 'docs/site.css'
+      - 'docs/favicon.svg'
+      - 'docs/.nojekyll'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check public demo assets
+        run: |
+          set -euo pipefail
+          node --check docs/dashboard.js
+          test -f docs/index.html
+          test -f docs/demo.html
+          test -f docs/.nojekyll
+          for file in docs/index.html docs/demo.html docs/dashboard.js docs/site.css docs/dashboard.css; do
+            if grep -Eiq -- 'PRIVATE KEY-----|github_pat_[a-zA-Z0-9_]{30,}|ghp_[a-zA-Z0-9]{30,}|https?://[^/[:space:]]+/api/v1/' "$file"; then
+              echo "::error::Sensitive or live API reference in public preview: $file"
+              exit 1
+            fi
+          done
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
+      - id: deployment
+        uses: actions/deploy-pages@v4
