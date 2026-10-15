@@ -1,0 +1,29 @@
+name: Public Installer Security Gate
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  public-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject proprietary source and sensitive files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -Ei '^(cmd/|internal/|pkg/|dist/|state/|vendor/|vendor-keys/|distributor-artifacts/)|(^|/)(\.env|license\.key|config\.json)$|\.(pem|p12|pfx|secret|sqlite3?)$|private\.key$'; then
+            echo "::error::Proprietary source or secret file detected in public installer"
+            exit 1
+          fi
+          if git grep -Il -E -- '-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----|github_pat_[a-zA-Z0-9_]{30,}|ghp_[A-Za-z0-9]{30,}' -- .; then
+            echo "::error::Potential private credential in public repository"
+            exit 1
+          fi
+      - name: Validate Python installer (when published)
+        if: hashFiles('installer.py') != ''
+        run: |
+          python3 -m py_compile installer.py
+          if [ -d tests ]; then python3 -m unittest discover -s tests -v; fi
