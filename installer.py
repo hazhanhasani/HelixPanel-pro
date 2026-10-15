@@ -126,6 +126,74 @@ def verify_release_envelope(envelope: dict, public_pem: str, *, now: int | None 
         raise InstallError(f"invalid release manifest: {exc}") from exc
 
 
+
+def verify_license_token(token: str, public_key: str, installation_id: str, *, now: int | None = None) -> dict:
+    """Reject unsigned, expired or installation-mismatched vendor licenses."""
+    try:
+        payload, signature = token.strip().split(".")
+        raw, sig, key = b64url(payload), b64url(signature), b64url(public_key)
+        if len(raw) > 8192 or len(sig) != 64 or len(key) != 32:
+            raise ValueError("invalid length")
+        # ASN.1 SubjectPublicKeyInfo header for a 32-byte Ed25519 key.
+        spki = bytes.fromhex("302a300506032b6570032100") + key
+        with tempfile.TemporaryDirectory(prefix="helix-license-") as tmp:
+            root = Path(tmp)
+            (root / "public.der").write_bytes(spki)
+            (root / "payload").write_bytes(raw)
+            (root / "signature").write_bytes(sig)
+            check = subprocess.run(
+                ["openssl", "pkeyutl", "-verify", "-pubin", "-keyform", "DER",
+                 "-inkey", str(root / "public.der"), "-rawin",
+                 "-in", str(root / "payload"), "-sigfile", str(root / "signature")],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10,
+            )
+            if check.returncode != 0:
+                raise ValueError("invalid Ed25519 signature")
+        claims = json.loads(raw)
+        current = int(time.time()) if now is None else now
+        if (not isinstance(claims, dict) or claims.get("version") != 1
+                or claims.get("product") != PRODUCT
+                or claims.get("installation_id") != installation_id
+                or not isinstance(claims.get("license_id"), str)
+                or not isinstance(claims.get("customer_id"), str)
+                or not isinstance(claims.get("max_users"), int)
+                or not isinstance(claims.get("max_nodes"), int)
+                or claims["max_users"] < 1 or claims["max_nodes"] < 1
+                or not isinstance(claims.get("issued_at"), int)
+                or not isinstance(claims.get("expires_at"), int)
+                or claims["issued_at"] > current + 300
+                or claims["expires_at"] <= current):
+            raise ValueError("invalid or expired license claims")
+        return claims
+    except (ValueError, TypeError, KeyError, OSError, subprocess.SubprocessError) as exc:
+        raise InstallError("vendor license signature or installation binding is invalid") from exc
+
+
+def request_activation(api: str, code: str, installation_id: str) -> str:
+    if not re.fullmatch(r"HP-[A-Za-z0-9_-]{32}", code):
+        raise InstallError("activation code is malformed")
+    body = json.dumps({"activation_code": code, "installation_id": installation_id}).encode()
+    req = urllib.request.Request(
+        api + "/v1/licenses/activate", data=body, method="POST",
+        headers={"Content-Type": "application/json", "User-Agent": "HelixPanelInstaller/1.1"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=25) as resp:
+            if resp.status != 200:
+                raise InstallError("activation server did not accept this code")
+            response = json.loads(resp.read(16384))
+        token = response.get("license_key")
+        if not isinstance(token, str) or len(token) > 8192:
+            raise InstallError("invalid activation server response")
+        return token
+    except urllib.error.HTTPError as exc:
+        if exc.code == 403:
+            raise InstallError("activation denied: invalid, expired or already bound code") from exc
+        raise InstallError(f"activation service HTTP {exc.code}") from exc
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        raise InstallError("activation service unavailable or returned invalid data") from exc
+
+
 def request_release(api: str, license_key: str, installation_id: str, target: str) -> dict:
     body = json.dumps({"license_key": license_key.strip(), "installation_id": installation_id,
                        "platform": target}).encode()
@@ -349,9 +417,11 @@ def deploy(config: dict, input_file: Path, target: str, *, install_root: Path = 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="HelixPanel proprietary binary installer")
-    parser.add_argument("command", choices=["identity", "install", "update", "status"])
+    parser.add_argument("command", choices=["identity", "install", "update", "status", "activate"])
     parser.add_argument("--config", type=Path, default=Path(__file__).with_name("config.json"))
     parser.add_argument("--license-file", type=Path, help="vendor-issued signed customer license")
+    parser.add_argument("--activation-code-file", type=Path, help="root-only vendor activation secret")
+    parser.add_argument("--output-license-file", type=Path, help="new license output for activation")
     args = parser.parse_args()
     try:
         if args.command == "identity":
@@ -364,8 +434,23 @@ def main() -> int:
             print("Current:", str((ROOT / "current").resolve()) if (ROOT / "current").is_symlink() else "not installed")
             return 0
         config = read_config(args.config)
+        if args.command == "activate":
+            if os.geteuid() != 0:
+                raise InstallError("activation requires root to protect credentials")
+            if not args.activation_code_file or not args.output_license_file:
+                raise InstallError("--activation-code-file and --output-license-file required")
+            identity = read_identity()
+            code = args.activation_code_file.read_text(encoding="utf-8").strip()
+            license_key = request_activation(config["api_base"], code, identity)
+            claims = verify_license_token(license_key, config["license_public_key"], identity)
+            args.output_license_file.parent.mkdir(parents=True, exist_ok=True)
+            fd = os.open(args.output_license_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as out:
+                out.write(license_key + "\\n")
+            print("License active through:", time.strftime("%Y-%m-%d", time.gmtime(claims["expires_at"])))
+            return 0
         if not args.license_file:
-            raise InstallError("--license-file is required")
+            raise InstallError("--license-file required (run 'activate' first for automatic licensing)")
         deploy(config, args.license_file, platform_id())
         return 0
     except (InstallError, FileNotFoundError, PermissionError, subprocess.CalledProcessError) as exc:
