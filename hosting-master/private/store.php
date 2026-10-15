@@ -8,6 +8,16 @@ declare(strict_types=1);
 if (!defined('HELIX_MASTER_INTERNAL')) { http_response_code(404); exit; }
 
 final class HelixMasterStore {
+    // Public verification key of the current HelixPanel license issuer.
+    // It is deliberately embedded so upgraded existing installs with an
+    // empty license_public_key can validate future vendor-signed licenses.
+    public const VENDOR_LICENSE_PUBLIC_KEY = 'UgMjnCA3zJnoH7Sn4CVZ-GucoqitVOdmrP6t03XlH9o';
+
+    public static function trustedLicensePublicKey(array $cfg): string {
+        $configured = trim((string)($cfg['license_public_key'] ?? ''));
+        return $configured !== '' ? $configured : self::VENDOR_LICENSE_PUBLIC_KEY;
+    }
+
     private PDO $db;
     private array $cfg;
 
@@ -45,7 +55,7 @@ final class HelixMasterStore {
             'max_nodes'=>1, 'max_users'=>25, 'reason'=>'permanent free Community edition',
         ];
         $key = (string)($this->cfg['license_key'] ?? '');
-        $pub = (string)($this->cfg['license_public_key'] ?? '');
+        $pub = self::trustedLicensePublicKey($this->cfg);
         if ($key === '' || $pub === '' || !function_exists('sodium_crypto_sign_verify_detached')) {
             return $fallback;
         }
