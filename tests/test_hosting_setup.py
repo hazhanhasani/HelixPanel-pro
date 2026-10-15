@@ -113,6 +113,7 @@ class QuickHostingSetupTest(unittest.TestCase):
                 content = (private / "config.php").read_text()
                 self.assertIn("'mode' => 'standalone'", content)
                 self.assertIn("'license_key' => ''", content)
+                self.assertIn("'license_public_key' => 'UgMjnCA3zJnoH7Sn4CVZ-GucoqitVOdmrP6t03XlH9o'", content)
                 self.assertNotIn("password-2026", finished)
                 self.assertIn("ورود به مستر پنل", opener.open(urllib.request.Request(base + "setup.php", headers={"Cookie":session_header})).read().decode())
                 probe = opener.open(base + "license.php").read().decode("utf-8")
@@ -120,8 +121,8 @@ class QuickHostingSetupTest(unittest.TestCase):
                 installation = json.loads(probe)
                 self.assertRegex(installation["installation_id"], r"^[a-f0-9]{32}$")
                 self.assertEqual(installation["product"], "helixpanel")
-                # Never install arbitrary licenses while the vendor public
-                # verification key has not yet been configured.
+                # Official public verification key is preconfigured, but
+                # arbitrary unsigned tokens must still be rejected.
                 req = urllib.request.Request(
                     base + "license.php",
                     data=b'{"license_key":"untrusted.token"}',
@@ -129,7 +130,7 @@ class QuickHostingSetupTest(unittest.TestCase):
                 )
                 with self.assertRaises(urllib.error.HTTPError) as failure:
                     opener.open(req,timeout=5)
-                self.assertEqual(failure.exception.code,503)
+                self.assertEqual(failure.exception.code,403)
 
             finally:
                 server.terminate()
