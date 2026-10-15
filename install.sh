@@ -141,21 +141,35 @@ then
 fi
 
 license_path="${INSTALLATION_STATE}/license.key"
-if [[ ! -f "$license_path" ]]; then
+activation_path="/etc/helixpanel/activation.key"
+activation_source=""
+if [[ -s "$activation_path" ]]; then
+  activation_source="$activation_path"
+elif [[ ! -s "$license_path" ]]; then
   if [[ "$MODE" == "update" ]]; then
-    die "No installed license found. Run the default install command first."
+    die "No license or activation code found. Run installation first."
   fi
   if [[ ! -r /dev/tty ]]; then
-    die "A terminal is required to enter the license. Connect via SSH with TTY (-t)."
+    die "A terminal is required for the first activation (connect over SSH -t)."
   fi
-  printf '\n'
-  info "Enter the license issued by the vendor (input hidden)"
-  license_value=""
-  IFS= read -r -s -p "License key: " license_value </dev/tty || die "Could not read license"
-  printf '\n' >/dev/tty
-  [[ -n "$license_value" && "${#license_value}" -le 8192 ]] || die "Invalid or empty license key"
-  printf '%s\n' "$license_value" > "${TMP_DIR}/license.key"
-  unset license_value
+  printf '\\n'
+  info "Enter your activation code once. Future renewals and updates are automatic."
+  code=""
+  IFS= read -r -s -p "Activation code (HP-...): " code </dev/tty || die "Could not read activation code"
+  printf '\\n' >/dev/tty
+  [[ "$code" =~ ^HP-[A-Za-z0-9_-]{32}$ ]] || die "Activation code format is invalid"
+  printf '%s\\n' "$code" > "${TMP_DIR}/activation.key"
+  unset code
+  activation_source="${TMP_DIR}/activation.key"
+fi
+
+if [[ -n "$activation_source" ]]; then
+  info "Activating or renewing the vendor-signed license"
+  python3 "${TMP_DIR}/installer.py" activate \\
+    --config "${TMP_DIR}/config.json" \\
+    --activation-code-file "$activation_source" \\
+    --output-license-file "${TMP_DIR}/license.key" ||
+    die "Automatic activation failed; existing installation is unchanged."
   license_path="${TMP_DIR}/license.key"
 fi
 
@@ -163,6 +177,63 @@ info "Verifying license and downloading signed release"
 python3 "${TMP_DIR}/installer.py" "$MODE" \
   --config "${TMP_DIR}/config.json" --license-file "$license_path" ||
   die "Install/update failed. Existing deployment has not been intentionally removed."
+
+# Only after a successful signed installation: pin a root-owned updater and
+# verification config on the host. Automatic renewal uses the original secret.
+info "Enabling automatic license refresh and signed updates"
+mkdir -p /usr/local/lib/helixpanel /etc/helixpanel
+chmod 700 /usr/local/lib/helixpanel /etc/helixpanel
+install -o root -g root -m 0600 "${TMP_DIR}/config.json" /etc/helixpanel/update.json
+install -o root -g root -m 0700 "${TMP_DIR}/installer.py" /usr/local/lib/helixpanel/installer.py
+if [[ -n "$activation_source" && "$activation_source" == "${TMP_DIR}/activation.key" ]]; then
+  install -o root -g root -m 0600 "$activation_source" /etc/helixpanel/activation.key
+fi
+fetch "${RAW_BASE}/auto-update.sh" "${TMP_DIR}/auto-update.sh" ||
+  die "Panel installed but the automatic updater could not be downloaded."
+bash -n "${TMP_DIR}/auto-update.sh" || die "Automatic updater script is invalid."
+install -o root -g root -m 0700 "${TMP_DIR}/auto-update.sh" /usr/local/lib/helixpanel/auto-update.sh
+
+cat > /etc/systemd/system/helixpanel-update.service <<'UNIT'
+[Unit]
+Description=HelixPanel automatic license renewal and signed update
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/helixpanel/update.json
+ConditionPathExists=/usr/local/lib/helixpanel/auto-update.sh
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/local/lib/helixpanel/auto-update.sh
+TimeoutStartSec=240
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/etc/helixpanel /var/lib/helixpanel /opt/helixpanel /run/lock /etc/systemd/system
+Environment=PYTHONDONTWRITEBYTECODE=1
+UNIT
+cat > /etc/systemd/system/helixpanel-update.timer <<'TIMER'
+[Unit]
+Description=Check HelixPanel licenses and signed releases automatically
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=6h
+RandomizedDelaySec=20min
+AccuracySec=5min
+Persistent=true
+Unit=helixpanel-update.service
+
+[Install]
+WantedBy=timers.target
+TIMER
+chmod 0644 /etc/systemd/system/helixpanel-update.service /etc/systemd/system/helixpanel-update.timer
+systemctl daemon-reload
+systemctl enable --now helixpanel-update.timer
+ok "Automatic license and update timer enabled (every ~6 hours)"
+
 
 printf '\n'
 ok "HelixPanel installation verified"
