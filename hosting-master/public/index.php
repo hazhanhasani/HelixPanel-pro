@@ -317,7 +317,7 @@ unset($_SESSION['enrollment']);
 </form>
 <div class="table-wrap"><table><thead><tr><th>نام</th><th>کشور</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
 <?php foreach ($nodes as $node): if (!is_array($node)) continue; ?>
-<tr><td><?= h($node['name'] ?? '') ?></td><td><?= h($node['region'] ?? '') ?></td><td>در انتظار Agent</td><td>
+<tr><td><?= h($node['name'] ?? '') ?></td><td><?= h($node['region'] ?? '') ?></td><td><?= h(match($node['status'] ?? '') {'online'=>'آنلاین','offline'=>'آفلاین', default=>'در انتظار اتصال'}) ?></td><td>
 <?php if ($standaloneStore): ?><form method="post" class="node-enroll"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="enroll-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="outline" type="submit">صدور کد اتصال</button></form><?php endif; ?><form method="post"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="delete-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="danger" type="submit">حذف</button></form></td></tr>
 <?php endforeach; ?>
 <?php if (!$nodes): ?><tr><td colspan="4" class="empty">هنوز نودی ثبت نشده است.</td></tr><?php endif; ?>
