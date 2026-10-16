@@ -113,7 +113,7 @@ function redirectHome(): never {
 function upstream(string $method, string $route, ?array $payload = null): array {
     global $apiBase, $apiToken, $standaloneStore;
     if ($standaloneStore instanceof HelixMasterStore) return $standaloneStore->handle($method,$route,$payload);
-    if (!in_array($method, ['GET', 'POST', 'DELETE'], true)
+    if (!in_array($method, ['GET', 'POST', 'PATCH', 'DELETE'], true)
         || !preg_match('~^/api/v1/(summary|license|nodes|users)(/[A-Za-z0-9_-]{1,100})?(/enrollment)?$~D', $route)) {
         throw new RuntimeException('درخواست API مجاز نیست.');
     }
@@ -281,11 +281,13 @@ if (isset($_GET['hp_api'])) {
     $read=in_array($resource,['nodes','users','license','summary','updates'],true);
     $write=in_array($resource,['nodes','users'],true);
     $updateInstall=($resource==='updates/install' && $method==='POST');
+    $updateUser=(bool)preg_match('~^users/[a-f0-9]{32}$~D',$resource) && $method==='PATCH';
     $nodeEnroll=(bool)preg_match('~^nodes/[a-f0-9]{32}/enrollment$~D',$resource);
     $destroy=(bool)preg_match('~^(?:nodes|users)/[A-Za-z0-9_-]{1,100}$~D',$resource);
     if (!(($method==='GET' && $read)
         ||($method==='POST' && ($write||$nodeEnroll||$updateInstall))
-        ||($method==='DELETE' && $destroy))) {
+        ||($method==='DELETE' && $destroy)
+        ||$updateUser)) {
         http_response_code(404);
         echo '{"error":"unsupported_resource"}';
         exit;
@@ -316,7 +318,7 @@ if (isset($_GET['hp_api'])) {
             exit;
         }
         $payload=null;
-        if ($method==='POST' && !$nodeEnroll) {
+        if (($method==='POST' && !$nodeEnroll && !$updateInstall) || $updateUser) {
             $raw=file_get_contents('php://input',false,null,0,16385);
             if (!is_string($raw) || strlen($raw)>16384) throw new RuntimeException('درخواست بیش از حد مجاز است.');
             $payload=json_decode($raw,true,8,JSON_THROW_ON_ERROR);
