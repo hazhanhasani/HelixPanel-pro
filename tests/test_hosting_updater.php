@@ -24,12 +24,9 @@ try {
                    'sha'=>hpUpdateBlobHash($body)];
     }
     $fetch = static function (string $url, int $size) use ($sha, $tree, $blobs): string {
-        if (str_ends_with($url, '/commits/main')) {
-            return json_encode(['sha'=>$sha], JSON_THROW_ON_ERROR);
-        }
         if (str_contains($url, '/actions/workflows/')) {
             return json_encode(['workflow_runs'=>[
-                ['head_sha'=>$sha,'conclusion'=>'success','event'=>'push']
+                ['head_sha'=>$sha,'conclusion'=>'success','event'=>'push','head_branch'=>'main']
             ]], JSON_THROW_ON_ERROR);
         }
         if (str_contains($url, '/git/trees/')) {
@@ -48,15 +45,25 @@ try {
               ==='old-'.$name, 'private rollback backup missing: '.$name);
     }
     check(hpUpdateNow($public, $private, $fetch)==='up_to_date', 'idempotence failed');
+    $docsOnlyCommit = static function(string $url, int $size) use ($fetch, $sha): string {
+        if (str_contains($url, '/actions/workflows/')) {
+            return json_encode(['workflow_runs' => [
+                ['head_sha'=>str_repeat('f', 40), 'conclusion'=>'failure','event'=>'push','head_branch'=>'main'],
+                ['head_sha'=>$sha, 'conclusion'=>'success','event'=>'push','head_branch'=>'main']
+            ]], JSON_THROW_ON_ERROR);
+        }
+        return $fetch($url, $size);
+    };
+    check(hpUpdateNow($public,$private,$docsOnlyCommit)==='up_to_date',
+        'a newer unapproved commit must not block the last approved release');
     check(trim(file_get_contents($private.'/dashboard-revision'))===$sha, 'revision pin missing');
     check(hpUpdateTick($public,$private,false,$fetch)==='up_to_date','tick failed');
     check(hpUpdateTick($public,$private,false,$fetch)==='throttled','throttle failed');
 
     $newSha=str_repeat('b',40);
     $broken=static function(string $url, int $size) use($fetch,$newSha): string {
-        if(str_ends_with($url,'/commits/main'))return json_encode(['sha'=>$newSha]);
         if(str_contains($url,'/actions/workflows/'))
-            return json_encode(['workflow_runs'=>[['head_sha'=>$newSha,'conclusion'=>'success','event'=>'push']]]);
+            return json_encode(['workflow_runs'=>[['head_sha'=>$newSha,'conclusion'=>'success','event'=>'push','head_branch'=>'main']]]);
         if(str_contains($url,'/git/trees/')) {
             $valid=json_decode($fetch('https://api.github.com/repos/hazhanhasani/HelixPanel-pro/git/trees/'.str_repeat('a',40),262144),true);
             return json_encode($valid);
