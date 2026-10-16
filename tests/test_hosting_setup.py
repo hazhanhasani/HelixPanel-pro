@@ -35,9 +35,9 @@ class QuickHostingSetupTest(unittest.TestCase):
             public = directory / "public_html"
             public.mkdir()
             (public / "assets").mkdir()
-            for path in ("setup.php", "index.php", "license.php"):
+            for path in ("setup.php", "index.php", "license.php", "dashboard.html", "auto-update.php"):
                 shutil.copy2(ROOT / "hosting-master" / "public" / path, public / path)
-            for path in ("setup.css", "master.css", "logo-mark.webp"):
+            for path in ("setup.css", "master.css", "logo-mark.webp", "app.js", "style.css", "dashboard-v2.css"):
                 shutil.copy2(ROOT / "hosting-master/public/assets" / path, public / "assets" / path)
             shutil.copy2(ROOT / "hosting-master/private/store.php", public / "setup-store.php")
             prepend = directory / "https.php"
@@ -116,6 +116,50 @@ class QuickHostingSetupTest(unittest.TestCase):
                 self.assertIn("'license_public_key' => 'UgMjnCA3zJnoH7Sn4CVZ-GucoqitVOdmrP6t03XlH9o'", content)
                 self.assertNotIn("password-2026", finished)
                 self.assertIn("ورود به مستر پنل", opener.open(urllib.request.Request(base + "setup.php", headers={"Cookie":session_header})).read().decode())
+                # Verify the installed PHP dashboard actually serves the same
+                # routed Go control center and uses an authenticated API bridge.
+                login_page = opener.open(base).read().decode("utf-8")
+                login_csrf = re.search(r'name="csrf" value="([a-f0-9]{64})"', login_page)
+                self.assertIsNotNone(login_csrf)
+                master_session = next((c for c in cookies if c.name == "hp_master"), None)
+                self.assertIsNotNone(master_session)
+                master_cookie = f"hp_master={master_session.value}"
+                auth_request = urllib.request.Request(
+                    base,
+                    data=urllib.parse.urlencode({
+                        "action":"login",
+                        "password":"a-unique-admin-password-2026",
+                        "csrf":login_csrf.group(1),
+                    }).encode(),
+                    headers={"Content-Type":"application/x-www-form-urlencoded","Cookie":master_cookie},
+                    method="POST",
+                )
+                opener.open(auth_request, timeout=10)
+                dashboard = opener.open(urllib.request.Request(
+                    base, headers={"Cookie":master_cookie}),timeout=10).read().decode("utf-8")
+                self.assertIn("data-helix-mode=\"hosted\"",dashboard)
+                self.assertIn('data-view="nodes"',dashboard)
+                self.assertIn('data-view="users"',dashboard)
+                self.assertIn('assets/app.js?v=3',dashboard)
+                bridge_csrf = re.search(r'name="helix-csrf" content="([a-f0-9]{64})"',dashboard)
+                self.assertIsNotNone(bridge_csrf)
+                api_req = urllib.request.Request(
+                    base+"?hp_api="+urllib.parse.quote("nodes"),
+                    headers={"Cookie":master_cookie},method="GET"
+                )
+                import json
+                node_list = json.loads(opener.open(api_req,timeout=10).read().decode("utf-8"))
+                self.assertIsInstance(node_list,list)
+                no_csrf = urllib.request.Request(base+"?hp_api=nodes",
+                    data=b'{"name":"test","region":"DE"}',method="POST",
+                    headers={"Cookie":master_cookie,"Content-Type":"application/json"})
+                with self.assertRaises(urllib.error.HTTPError) as csrf_failed:
+                    opener.open(no_csrf,timeout=10)
+                self.assertEqual(csrf_failed.exception.code,403)
+                unauthenticated = urllib.request.Request(base+"?hp_api=nodes",method="GET")
+                with self.assertRaises(urllib.error.HTTPError) as denied:
+                    opener.open(unauthenticated,timeout=10)
+                self.assertEqual(denied.exception.code,401)
                 probe = opener.open(base + "license.php").read().decode("utf-8")
                 import json
                 installation = json.loads(probe)
