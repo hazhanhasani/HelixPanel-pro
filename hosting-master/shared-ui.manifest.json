@@ -3,9 +3,9 @@
   "source_repository": "hazhanhasani/HelixPanel-Core",
   "assets": {
     "hosting-master/public/dashboard.html": "6faa8fc75c3ccce5147b8958192370a53533ddba",
-    "hosting-master/public/assets/app.js": "e25d1859e92042c71f5fb626a1ebd547c0bfea07",
+    "hosting-master/public/assets/app.js": "31a5f26e53e3b335ba262f2aad666277e0ea3617",
     "hosting-master/public/assets/style.css": "773bb1136940fa8fc3028393e331a689ec594c8f",
-    "hosting-master/public/assets/dashboard-v2.css": "a290aae7e307e41048a76e39a20c780b551f2924",
+    "hosting-master/public/assets/dashboard-v2.css": "51cf9deaf6446c25ba24b37432fb83e60624f783",
     "hosting-master/public/assets/logo-mark.webp": "f88efd931bf915ffc4d6956c9fae0750f23ecea0"
   }
 }
