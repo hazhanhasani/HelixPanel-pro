@@ -1,6 +1,8 @@
 """Regression checks for one shared, routed Go/PHP dashboard."""
 from pathlib import Path
 import re
+import json
+import hashlib
 import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -31,6 +33,13 @@ class SharedDashboardTests(unittest.TestCase):
             self.assertIn('public / "'+file+'"', PACKAGE)
         self.assertIn("'assets/app.js'",UPDATER)
         self.assertIn("'dashboard.html'",UPDATER)
+
+    def test_shared_sources_are_byte_identical_to_core_manifest(self):
+        manifest=json.loads((ROOT/"hosting-master/shared-ui.manifest.json").read_text(encoding="utf-8"))
+        for relative, expected in manifest["assets"].items():
+            raw=(ROOT/relative).read_bytes()
+            actual=hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\\0"+raw).hexdigest()
+            self.assertEqual(actual,expected,relative)
 
     def test_cpanel_authenticated_api_does_not_expose_secrets(self):
         self.assertIn("hash_equals",PHP)
