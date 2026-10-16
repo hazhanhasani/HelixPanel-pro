@@ -135,6 +135,7 @@ class QuickHostingSetupTest(unittest.TestCase):
                     method="POST",
                 )
                 opener.open(auth_request, timeout=10)
+                master_cookie = f"hp_master={next(c for c in cookies if c.name == 'hp_master').value}"
                 dashboard = opener.open(urllib.request.Request(
                     base, headers={"Cookie":master_cookie}),timeout=10).read().decode("utf-8")
                 self.assertIn("data-helix-mode=\"hosted\"",dashboard)
