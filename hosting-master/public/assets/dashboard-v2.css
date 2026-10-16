@@ -67,3 +67,13 @@ footer{border-top:1px solid #283a50}
 @media(max-width:1100px){.sidebar{width:230px}.operation-strip{grid-template-columns:1fr}}
 @media(max-width:700px){.sidebar{height:70px;width:100%;padding:5px 9px}.logo{display:none}.topbar{height:65px}.main-inner{padding:18px 14px 30px}.welcome{padding:19px 17px}.welcome h1{font-size:21px}.stat-card{min-height:135px}.live-banner{align-items:flex-start;flex-direction:column}.control-search{padding:0 14px 15px}.control-search select{flex:1}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Unified version notification (rendered only when an approved release exists). */
+.update-banner{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;margin:0 0 20px;padding:18px 21px;border:1px solid #367c70;border-radius:16px;background:linear-gradient(110deg,#174540,#142c3d);box-shadow:0 12px 30px #040b1424}
+.update-banner[hidden]{display:none!important}
+.update-content{flex:1;min-width:240px}
+.update-content strong{display:block;color:#a5ffdf;font-size:15px}
+.update-content p{color:#bed6dd;margin:4px 0 0;font-size:12px}
+.update-banner button{white-space:nowrap}
+.update-banner button:disabled{cursor:wait;opacity:.7}
+@media(max-width:700px){.update-banner{align-items:stretch;padding:16px}.update-banner button{width:100%}}
