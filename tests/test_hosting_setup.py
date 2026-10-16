@@ -181,7 +181,11 @@ class QuickHostingSetupTest(unittest.TestCase):
                             "Content-Type":"application/json",
                         },
                     )
-                    return json.loads(opener.open(req,timeout=10).read().decode("utf-8"))
+                    try:
+                        return json.loads(opener.open(req,timeout=10).read().decode("utf-8"))
+                    except urllib.error.HTTPError as exc:
+                        detail = exc.read(300).decode("utf-8",errors="replace")
+                        self.fail(f"API {method} {resource}: HTTP {exc.code}: {detail}")
                 created_node=mutate("POST","nodes",{"name":"ci-fra-node","region":"DE"})
                 self.assertRegex(created_node["id"],r"^[a-f0-9]{32}$")
                 mutate("DELETE","nodes/"+created_node["id"])
