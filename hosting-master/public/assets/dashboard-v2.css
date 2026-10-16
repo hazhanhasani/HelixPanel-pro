@@ -111,3 +111,14 @@ body.dashboard-body a{color:inherit}
 }
 @media(max-width:370px){.dashboard-body .stat strong{font-size:24px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Native progress avoids unsafe inline styling under strict CSP. */
+.dashboard-body .heading-group{display:flex;align-items:center;gap:12px}
+.dashboard-body .capacity-meta{margin-top:23px}
+.dashboard-body .capacity-track{height:auto;background:transparent;border-radius:0;overflow:visible}
+.dashboard-body .capacity-meter{display:block;width:100%;height:9px;border:0;overflow:hidden;appearance:none;border-radius:99px;background:#26374b}
+.dashboard-body .capacity-meter::-webkit-progress-bar{background:#26374b;border-radius:99px}
+.dashboard-body .capacity-meter::-webkit-progress-value{background:linear-gradient(90deg,#48d2bd,#88eac9);border-radius:99px}
+.dashboard-body .capacity-meter.alt::-webkit-progress-value{background:linear-gradient(90deg,#6c9eff,#a1c6ff)}
+.dashboard-body .capacity-meter::-moz-progress-bar{background:#48d2bd;border-radius:99px}
+.dashboard-body .capacity-meter.alt::-moz-progress-bar{background:#6c9eff}
