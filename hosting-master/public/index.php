@@ -419,12 +419,30 @@ footer{font:11px Arial;color:#8098b0;text-align:center;padding:25px}
 </div>
 <?php endif; ?>
 
-<section id="overview" class="stats">
-<article class="stat"><span>نودهای ثبت‌شده</span><strong><?= h($summary['nodes'] ?? count($nodes)) ?></strong><small>اطلاعات واقعی API</small></article>
-<article class="stat"><span>مشترکین</span><strong><?= h($summary['users'] ?? count($users)) ?></strong><small>بدون آمار ساختگی</small></article>
-<article class="stat"><span>مجوز</span><strong><?= !empty($license['active']) ? 'تجاری' : 'رایگان' ?></strong><small><?= !empty($license['active']) ? 'فعال' : '۱ نود · ۲۵ کاربر' ?></small></article>
-<article class="stat"><span>نودهای متصل</span><strong><?= h($summary['connected_nodes'] ?? 0) ?></strong><small>Agent هنوز پیاده‌سازی نشده</small></article>
+<section id="overview" class="stats" aria-label="شاخص‌های کلیدی">
+<article class="stat"><span class="stat-mark" aria-hidden="true">▣</span><span>نودهای ثبت‌شده</span><strong><?= h($summary['nodes'] ?? count($nodes)) ?></strong><small><?= h($nodePending) ?> نود در انتظار اتصال</small></article>
+<article class="stat"><span class="stat-mark" aria-hidden="true">♧</span><span>کل مشترکین</span><strong><?= h($summary['users'] ?? count($users)) ?></strong><small><?= h($userActive) ?> کاربر با وضعیت فعال</small></article>
+<article class="stat"><span class="stat-mark" aria-hidden="true">✦</span><span>نوع لایسنس</span><strong><?= !empty($license['active'])?'تجاری':'رایگان' ?></strong><small><?= !empty($license['active'])?'فعال':'Community · رایگان دائمی' ?></small></article>
+<article class="stat"><span class="stat-mark" aria-hidden="true">◎</span><span>نودهای آنلاین</span><strong><?= h($nodeOnline) ?></strong><small>براساس Heartbeat ثبت‌شده نود</small></article>
 </section>
+<div class="summary-grid" aria-label="سلامت زیرساخت و ظرفیت">
+<section class="panel"><div class="section-head"><h2>وضعیت شبکه و سرویس‌ها</h2><span>نمای عملیاتی</span></div>
+<div class="operations-card">
+<div class="operation-item"><span class="operation-icon" aria-hidden="true">▣</span><div><strong><?= h($nodeOnline) ?> نود آنلاین از <?= h(count($nodes)) ?> نود</strong><small>داده ثبت‌شده در سیستم؛ وضعیت واقعی اتصال کاربران نیازمند موتور سرویس است.</small></div></div>
+<div class="operation-item"><span class="operation-icon" aria-hidden="true">♧</span><div><strong><?= h($userExpiring) ?> مشترک نزدیک انقضا</strong><small>انقضا در هفت روز آینده بر اساس اطلاعات موجود</small></div></div>
+<div class="operation-item"><span class="operation-icon" aria-hidden="true">↗</span><div><strong>CPU · RAM · Network Traffic</strong><small>در انتظار ماژول Telemetry و موتور سرویس</small></div></div>
+</div>
+<div class="notice-unavailable"><strong>داده مصرف زنده هنوز وجود ندارد.</strong>
+برای جلوگیری از نمایش اعداد ساختگی، نمودار مصرف تا اتصال واقعی Agent Metrics غیرفعال است.</div>
+</section>
+<section class="panel"><div class="section-head"><h2>ظرفیت اشتراک</h2><span><?= !empty($license['active'])?'فعال':'Community' ?></span></div>
+<div class="capacity-header"><span>ظرفیت نودها</span><b><?= h(count($nodes)) ?> / <?= h($licenseMaxNodes) ?></b></div>
+<div class="capacity-track" role="progressbar" aria-label="ظرفیت نودها" aria-valuenow="<?= h($nodeFill) ?>" aria-valuemin="0" aria-valuemax="100"><span class="capacity-fill" style="width:<?= h($nodeFill) ?>%"></span></div>
+<div class="capacity-header"><span>ظرفیت کاربران</span><b><?= h(count($users)) ?> / <?= h($licenseMaxUsers) ?></b></div>
+<div class="capacity-track" role="progressbar" aria-label="ظرفیت کاربران" aria-valuenow="<?= h($userFill) ?>" aria-valuemin="0" aria-valuemax="100"><span class="capacity-fill alt" style="width:<?= h($userFill) ?>%"></span></div>
+<p class="metrics-meta" style="margin-top:23px">سقف ظرفیت توسط API اعمال می‌شود و اعداد از داده واقعی خوانده می‌شوند.</p>
+<a class="refresh-link" href="#license">جزئیات لایسنس ←</a></section>
+</div>
 <section class="panel" id="nodes"><div class="section-head"><h2>مدیریت نودها</h2><span><?= count($nodes) ?> نود</span></div>
 <form method="post" class="inline-form">
 <input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="add-node">
