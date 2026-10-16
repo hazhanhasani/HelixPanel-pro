@@ -43,6 +43,8 @@ jobs:
           # Read-only private storage source for the first-run wizard, guarded by PHP.
           shutil.copy2("hosting-master/private/store.php", public / "setup-store.php")
           shutil.copy2("hosting-master/public/assets/master.css", public / "assets/master.css")
+          shutil.copy2("hosting-master/public/assets/dashboard-v2.css", public / "assets/dashboard-v2.css")
+          shutil.copy2("hosting-master/public/assets/dashboard-v2.js", public / "assets/dashboard-v2.js")
           shutil.copy2("hosting-master/public/assets/setup.css", public / "assets/setup.css")
           shutil.copy2("hosting-master/public/assets/logo-mark.webp", public / "assets/logo-mark.webp")
           shutil.copy2("hosting-master/config.example.php", private / "config.example.php")
