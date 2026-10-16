@@ -102,27 +102,25 @@ function hpUpdateSafePath(string $root, string $relative): string {
 function hpUpdateNow(string $root, string $private, ?callable $fetch = null): string {
     $fetch ??= 'hpUpdateGet';
     $repo = HP_UPDATER_REPO;
-    $commit = hpUpdateJson($fetch("https://api.github.com/repos/$repo/commits/main", 120000));
-    $sha = $commit['sha'] ?? '';
-    if (!is_string($sha) || !preg_match('/^[0-9a-f]{40}$/D', $sha)) {
-        throw new RuntimeException('Invalid upstream revision');
-    }
-
-    // Never update from untested main; wait until the official packaging CI
-    // succeeds against the exact same immutable commit.
+    // Select the latest approved package, not the latest commit on main.
+    // Docs-only commits do not trigger packaging and must never block upgrades.
     $run = hpUpdateJson($fetch(
         "https://api.github.com/repos/$repo/actions/workflows/" . HP_UPDATER_WORKFLOW .
         "/runs?branch=main&per_page=25", 196608
     ));
-    $approved = false;
+    $sha = null;
     foreach (($run['workflow_runs'] ?? []) as $entry) {
-        if (($entry['head_sha'] ?? '') === $sha && ($entry['conclusion'] ?? '') === 'success'
-            && ($entry['event'] ?? '') === 'push') {
-            $approved = true;
+        $candidate = $entry['head_sha'] ?? null;
+        if (($entry['conclusion'] ?? '') === 'success'
+            && ($entry['event'] ?? '') === 'push'
+            && ($entry['head_branch'] ?? '') === 'main'
+            && is_string($candidate)
+            && preg_match('/^[0-9a-f]{40}$/D', $candidate)) {
+            $sha = $candidate;
             break;
         }
     }
-    if (!$approved) return 'awaiting_ci';
+    if ($sha === null) return 'awaiting_ci';
 
     $currentPath = $private . '/dashboard-revision';
     if (is_file($currentPath) && trim((string)file_get_contents($currentPath)) === $sha) {
