@@ -296,12 +296,13 @@ if (isset($_GET['hp_api'])) {
     header('Cache-Control: no-store, private');
     $resource=(string)$_GET['hp_api'];
     $method=(string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
-    $read=in_array($resource,['nodes','users','license','summary'],true);
+    $read=in_array($resource,['nodes','users','license','summary','updates'],true);
     $write=in_array($resource,['nodes','users'],true);
+    $updateInstall=($resource==='updates/install' && $method==='POST');
     $nodeEnroll=(bool)preg_match('~^nodes/[a-f0-9]{32}/enrollment$~D',$resource);
     $destroy=(bool)preg_match('~^(?:nodes|users)/[A-Za-z0-9_-]{1,100}$~D',$resource);
     if (!(($method==='GET' && $read)
-        ||($method==='POST' && ($write||$nodeEnroll))
+        ||($method==='POST' && ($write||$nodeEnroll||$updateInstall))
         ||($method==='DELETE' && $destroy))) {
         http_response_code(404);
         echo '{"error":"unsupported_resource"}';
@@ -316,6 +317,22 @@ if (isset($_GET['hp_api'])) {
         }
     }
     try {
+        // Version checks and installation are performed server-side only.
+        // Login is required above, and installation additionally requires CSRF.
+        if ($resource==='updates' || $updateInstall) {
+            if (!defined('HELIX_UPDATE_INTERNAL')) define('HELIX_UPDATE_INTERNAL',true);
+            require_once __DIR__.'/auto-update.php';
+            $private=dirname($configPath);
+            if ($updateInstall) {
+                $result=hpUpdateTick(__DIR__,$private,true);
+                $ok=in_array($result,['updated','up_to_date'],true);
+                http_response_code($ok?200:($result==='locked'?409:503));
+                echo json_encode(['result'=>$result,'ok'=>$ok],JSON_THROW_ON_ERROR);
+            } else {
+                echo json_encode(hpUpdateAvailability($private),JSON_THROW_ON_ERROR);
+            }
+            exit;
+        }
         $payload=null;
         if ($method==='POST' && !$nodeEnroll) {
             $raw=file_get_contents('php://input',false,null,0,16385);
