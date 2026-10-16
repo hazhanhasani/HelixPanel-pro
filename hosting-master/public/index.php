@@ -398,7 +398,7 @@ footer{font:11px Arial;color:#8098b0;text-align:center;padding:25px}
 <div class="sidebar-footer">Control Center V2 · PHP Gateway<br><small>cPanel / DirectAdmin</small></div>
 </aside>
 <main class="content">
-<header class="topbar"><div style="display:flex;align-items:center;gap:12px">
+<header class="topbar"><div class="heading-group">
 <button type="button" id="mobile-menu-toggle" class="mobile-nav-button" aria-expanded="false" aria-controls="master-sidebar" aria-label="باز کردن منو">☰</button>
 <div><div class="eyebrow">HELIXPANEL / CONTROL CENTER</div><h1>مرکز فرماندهی زیرساخت</h1><p class="muted">سرورها، کاربران و مجوزها در یک مرکز</p></div></div>
 <div class="top-actions"><a class="refresh-link" href="./">↻ تازه‌سازی</a>
@@ -437,10 +437,10 @@ footer{font:11px Arial;color:#8098b0;text-align:center;padding:25px}
 </section>
 <section class="panel"><div class="section-head"><h2>ظرفیت اشتراک</h2><span><?= !empty($license['active'])?'فعال':'Community' ?></span></div>
 <div class="capacity-header"><span>ظرفیت نودها</span><b><?= h(count($nodes)) ?> / <?= h($licenseMaxNodes) ?></b></div>
-<div class="capacity-track" role="progressbar" aria-label="ظرفیت نودها" aria-valuenow="<?= h($nodeFill) ?>" aria-valuemin="0" aria-valuemax="100"><span class="capacity-fill" style="width:<?= h($nodeFill) ?>%"></span></div>
+<div class="capacity-track" role="progressbar" aria-label="ظرفیت نودها" aria-valuenow="<?= h($nodeFill) ?>" aria-valuemin="0" aria-valuemax="100"><progress class="capacity-meter" value="<?= h($nodeFill) ?>" max="100"><?= h($nodeFill) ?>%</progress></div>
 <div class="capacity-header"><span>ظرفیت کاربران</span><b><?= h(count($users)) ?> / <?= h($licenseMaxUsers) ?></b></div>
-<div class="capacity-track" role="progressbar" aria-label="ظرفیت کاربران" aria-valuenow="<?= h($userFill) ?>" aria-valuemin="0" aria-valuemax="100"><span class="capacity-fill alt" style="width:<?= h($userFill) ?>%"></span></div>
-<p class="metrics-meta" style="margin-top:23px">سقف ظرفیت توسط API اعمال می‌شود و اعداد از داده واقعی خوانده می‌شوند.</p>
+<div class="capacity-track" role="progressbar" aria-label="ظرفیت کاربران" aria-valuenow="<?= h($userFill) ?>" aria-valuemin="0" aria-valuemax="100"><progress class="capacity-meter alt" value="<?= h($userFill) ?>" max="100"><?= h($userFill) ?>%</progress></div>
+<p class="metrics-meta capacity-meta">سقف ظرفیت توسط API اعمال می‌شود و اعداد از داده واقعی خوانده می‌شوند.</p>
 <a class="refresh-link" href="#license">جزئیات لایسنس ←</a></section>
 </div>
 <section class="panel" id="nodes"><div class="section-head"><h2>مدیریت نودها</h2><span><?= count($nodes) ?> نود</span></div>
