@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - 'hosting-master/**'
+      - 'tests/test_hosting_updater.php'
+      - 'tests/test_dashboard_v2.py'
       - '.github/workflows/hosting-master-package.yml'
 
 permissions:
