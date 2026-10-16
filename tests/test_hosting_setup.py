@@ -153,7 +153,7 @@ class QuickHostingSetupTest(unittest.TestCase):
                 self.assertIn("data-helix-mode=\"hosted\"",dashboard)
                 self.assertIn('data-view="nodes"',dashboard)
                 self.assertIn('data-view="users"',dashboard)
-                self.assertIn('assets/app.js?v=3',dashboard)
+                self.assertIn('assets/app.js?v=4',dashboard)
                 bridge_csrf = re.search(r'name="helix-csrf" content="([a-f0-9]{64})"',dashboard)
                 self.assertIsNotNone(bridge_csrf)
                 api_req = urllib.request.Request(
