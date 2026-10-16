@@ -32,7 +32,12 @@ schema.sql                  # دیتابیس
 README.fa.md
 ```
 
-## داشبورد Control Center V2
+## داشبورد مشترک Control Center V3
+
+**وضعیت V3:** نسخه هاست و سرور از HTML، JavaScript، دو CSS و لوگوی دقیقاً یکسان استفاده می‌کنند. ناوبری واقعی در `?view=overview|nodes|users|license` انجام می‌شود و فقط صفحه فعال دیده می‌شود. در هاست، `index.php` پس از بررسی نشست و CSRF فایل مشترک `dashboard.html` را ارائه می‌کند و داده‌ها از پل امن `?hp_api=` به همان API منتقل می‌شوند؛ در سرور، همین HTML/JS/CSS با Bearer Token به هسته Go متصل است. تفاوت احراز هویت سروری حفظ شده و فایل‌های UI با مانیفست هش و تست CI از واگرایی محافظت می‌شوند.
+
+**توجه به نصب‌های موجود:** انتشار فایل در GitHub به‌معنای نصب‌شدن آن روی cPanel نیست. هاستی که هنوز آپدیتر جدید را دریافت نکرده، باید یک‌بار بسته V3 را نصب کند؛ پس از آن بررسی‌های دوره‌ای با آپدیتر موجود انجام می‌شوند.
+
 
 داشبورد واقعی نسخه هاست از رابط قدیمی به **Control Center V2** ارتقا یافته است:
 - سایدبار حرفه‌ای، موبایل RTL با منوی کشویی، تاریخ شمسی، پشتیبانی از کیبورد و نمایش وضعیت واقعی اتصال نود.
@@ -55,13 +60,13 @@ README.fa.md
 
 آپدیتر فقط نسخه‌ای را می‌پذیرد که Workflow رسمی `hosting-master-package.yml` برای **همان Commit** با موفقیت اجرا شده باشد؛ فایل‌ها با Hash مربوط به Git blob همان Commit تطبیق داده می‌شوند، از دامنه‌های GitHub با HTTPS معتبر دانلود می‌شوند و پیش از جایگزینی در `.helixpanel-master/update-backups` بکاپ خصوصی گرفته می‌شود. فایل‌های `config.php`، `store.php`، دیتابیس، `license.php` و `node.php` را آپدیتر داشبورد تغییر نمی‌دهد.
 
-> **نصب‌های قدیمی:** هاستی که هنوز `auto-update.php` ندارد نمی‌تواند خودبه‌خود قابلیت آپدیت را دریافت کند. برای آن نصب‌ها، نسخه `HelixPanel-Dashboard-V2-Update.zip` را **فقط یک‌بار** نصب کنید یا از روش Deploy مستقیم با دسترسی خود هاست استفاده کنید. بعد از فعال‌شدن آپدیتر، نسخه‌های بعدی داشبورد بدون ZIP نصب می‌شوند.
+> **نصب‌های قدیمی:** هاستی که هنوز `auto-update.php` ندارد نمی‌تواند خودبه‌خود قابلیت آپدیت را دریافت کند. برای آن نصب‌ها، نسخه `HelixPanel-Dashboard-V3-Update.zip` را **فقط یک‌بار** نصب کنید یا از روش Deploy مستقیم با دسترسی خود هاست استفاده کنید. بعد از فعال‌شدن آپدیتر، نسخه‌های بعدی داشبورد بدون ZIP نصب می‌شوند.
 
 > **محدوده فعلی:** این آپدیتر مخصوص فایل‌های عمومی داشبورد PHP است؛ تغییرات دیتابیس و API نودها نیازمند مهاجرت نسخه‌بندی‌شده و تست سازگاری‌اند. روی VPS تایمر systemd مجزا برای انتشارهای **امضاشده Go** وجود دارد؛ Push ساده GitHub به‌تنهایی یک Release امضاشده نمی‌سازد.
 
 ### ارتقای امن یک نصب موجود cPanel/DirectAdmin
 
-از [خروجی CI بسته هاست](https://github.com/hazhanhasani/HelixPanel-pro/actions/workflows/hosting-master-package.yml)، فایل `HelixPanel-Dashboard-V2-Update.zip` را بگیر. **قبل از جایگزینی فایل‌ها از `public_html/index.php` و `public_html/assets/` نسخه پشتیبان بگیر.**
+از [خروجی CI بسته هاست](https://github.com/hazhanhasani/HelixPanel-pro/actions/workflows/hosting-master-package.yml)، فایل `HelixPanel-Dashboard-V3-Update.zip` را بگیر. **قبل از جایگزینی فایل‌ها از `public_html/index.php` و `public_html/assets/` نسخه پشتیبان بگیر.**
 
 فایل ZIP را در `public_html` دامنه مستر Extract کن؛ شامل `index.php`، `assets/master.css`، `assets/dashboard-v2.css`، `assets/dashboard-v2.js` و لوگو است. پوشه بیرون از `public_html/.helixpanel-master`، دیتابیس، `node.php`، `license.php` و `setup.php` تغییر نمی‌کنند. پس از آپلود، صفحه را Hard Refresh کن. برای بازگشت به نسخه قبل، فایل‌های بکاپ `index.php` و `assets/` را برگردان.
 
