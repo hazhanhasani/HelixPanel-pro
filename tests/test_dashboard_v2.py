@@ -60,6 +60,11 @@ class SharedDashboardTests(unittest.TestCase):
         self.assertIn("htmlspecialchars",PHP)
         self.assertIn("CURLOPT_SSL_VERIFYPEER => true",PHP)
         self.assertIn("script-src 'self'",PHP)
+        self.assertIn("connect-src 'self'",PHP)  # Browser fetch() must not inherit default-src 'none'.
+        self.assertIn("api('nodes')",JS)
+        self.assertIn("api('updates')",JS)
+        self.assertIn("function initialView()",JS)
+        self.assertIn("views.includes(legacy)",JS)
         self.assertNotIn("<?= $apiToken",PHP)
         self.assertIn("credentials:'same-origin'",JS)
         self.assertNotIn("localStorage",JS)
