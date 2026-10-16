@@ -169,6 +169,27 @@ class QuickHostingSetupTest(unittest.TestCase):
                 with self.assertRaises(urllib.error.HTTPError) as csrf_failed:
                     opener.open(no_csrf,timeout=10)
                 self.assertEqual(csrf_failed.exception.code,403)
+                # Exercise the same JSON create/delete operations as the Go UI.
+                def mutate(method, resource, payload=None):
+                    req = urllib.request.Request(
+                        base+"?hp_api="+urllib.parse.quote(resource),
+                        data=json.dumps(payload).encode() if payload is not None else None,
+                        method=method,
+                        headers={
+                            "Cookie":master_cookie,
+                            "X-Helix-CSRF":bridge_csrf.group(1),
+                            "Content-Type":"application/json",
+                        },
+                    )
+                    return json.loads(opener.open(req,timeout=10).read().decode("utf-8"))
+                created_node=mutate("POST","nodes",{"name":"ci-fra-node","region":"DE"})
+                self.assertRegex(created_node["id"],r"^[a-f0-9]{32}$")
+                mutate("DELETE","nodes/"+created_node["id"])
+                from datetime import datetime, timezone, timedelta
+                expiry=(datetime.now(timezone.utc)+timedelta(days=31)).strftime("%Y-%m-%dT23:59:59Z")
+                created_user=mutate("POST","users",{"name":"ci-user-001","quota_gb":10,"expires_at":expiry})
+                self.assertRegex(created_user["id"],r"^[a-f0-9]{32}$")
+                mutate("DELETE","users/"+created_user["id"])
                 unauthenticated = urllib.request.Request(base+"?hp_api=nodes",method="GET")
                 with self.assertRaises(urllib.error.HTTPError) as denied:
                     opener.open(unauthenticated,timeout=10)
