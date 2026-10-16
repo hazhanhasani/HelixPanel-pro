@@ -28,7 +28,7 @@ class SharedDashboardTests(unittest.TestCase):
         self.assertIn("meta[name=", JS)
         for file in ["dashboard.html","assets/app.js","assets/style.css","assets/dashboard-v2.css","assets/logo-mark.webp"]:
             self.assertTrue((PUBLIC/file).is_file(),file)
-            self.assertIn('"'+file.split("/")[-1]+'"',PACKAGE if file.startswith('assets/') else PACKAGE)
+            self.assertIn('public / "'+file+'"', PACKAGE)
         self.assertIn("'assets/app.js'",UPDATER)
         self.assertIn("'dashboard.html'",UPDATER)
 
