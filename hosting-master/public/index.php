@@ -320,6 +320,26 @@ $notice = (string)($_SESSION['notice'] ?? '');
 unset($_SESSION['notice']);
 $enrollment = $_SESSION['enrollment'] ?? null;
 unset($_SESSION['enrollment']);
+
+// Automatic dashboard updates run only after a verified administrator session.
+// On PHP-FPM, finish the HTTP response before network IO. Without a scheduler,
+// idle hosting sites check on the next authenticated dashboard visit.
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+    && is_file(__DIR__ . '/auto-update.php')) {
+    $hpUpdaterRoot = __DIR__;
+    $hpUpdaterPrivate = dirname($configPath);
+    register_shutdown_function(static function () use ($hpUpdaterRoot, $hpUpdaterPrivate): void {
+        if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+        try {
+            define('HELIX_UPDATE_INTERNAL', true);
+            require_once $hpUpdaterRoot . '/auto-update.php';
+            hpUpdateTick($hpUpdaterRoot, $hpUpdaterPrivate);
+        } catch (Throwable $e) {
+            error_log('HelixPanel automatic dashboard update failed: ' . get_class($e));
+        }
+    });
+}
+
 $nodeOnline=0; $nodePending=0; $userActive=0; $userExpiring=0;
 foreach($nodes as $item){if(!is_array($item))continue; if(($item['status']??'')==='online')$nodeOnline++; if(($item['status']??'')==='pending_enrollment')$nodePending++;}
 foreach($users as $item){
