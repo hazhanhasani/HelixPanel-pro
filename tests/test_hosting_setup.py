@@ -186,14 +186,26 @@ class QuickHostingSetupTest(unittest.TestCase):
                     except urllib.error.HTTPError as exc:
                         detail = exc.read(300).decode("utf-8",errors="replace")
                         self.fail(f"API {method} {resource}: HTTP {exc.code}: {detail}")
-                created_node=mutate("POST","nodes",{"name":"ci-fra-node","region":"DE"})
-                self.assertRegex(created_node["id"],r"^[a-f0-9]{32}$")
-                mutate("DELETE","nodes/"+created_node["id"])
+                # The Community edition can be pre-provisioned at its
+                # licensed limit. Respect license enforcement in that case.
+                def read(resource):
+                    request=urllib.request.Request(
+                        base+"?hp_api="+urllib.parse.quote(resource),
+                        headers={"Cookie":master_cookie},method="GET")
+                    return json.loads(opener.open(request,timeout=10).read().decode("utf-8"))
+                license_status=read("license")
+                if len(node_list) < license_status["max_nodes"]:
+                    created_node=mutate("POST","nodes",{"name":"ci-fra-node","region":"DE"})
+                    self.assertRegex(created_node["id"],r"^[a-f0-9]{32}$")
+                    mutate("DELETE","nodes/"+created_node["id"])
+                else:
+                    self.assertGreaterEqual(len(node_list),license_status["max_nodes"])
                 from datetime import datetime, timezone, timedelta
                 expiry=(datetime.now(timezone.utc)+timedelta(days=31)).strftime("%Y-%m-%dT23:59:59Z")
-                created_user=mutate("POST","users",{"name":"ci-user-001","quota_gb":10,"expires_at":expiry})
-                self.assertRegex(created_user["id"],r"^[a-f0-9]{32}$")
-                mutate("DELETE","users/"+created_user["id"])
+                if len(read("users")) < license_status["max_users"]:
+                    created_user=mutate("POST","users",{"name":"ci-user-001","quota_gb":10,"expires_at":expiry})
+                    self.assertRegex(created_user["id"],r"^[a-f0-9]{32}$")
+                    mutate("DELETE","users/"+created_user["id"])
                 unauthenticated = urllib.request.Request(base+"?hp_api=nodes",method="GET")
                 with self.assertRaises(urllib.error.HTTPError) as denied:
                     opener.open(unauthenticated,timeout=10)
