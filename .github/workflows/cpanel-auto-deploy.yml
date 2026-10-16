@@ -1,0 +1,55 @@
+name: Bootstrap and Monitor cPanel Auto Updates
+
+on:
+  workflow_run:
+    workflows:
+      - Package cPanel & DirectAdmin Master Gateway
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: helixpanel-cpanel-auto-deploy
+  cancel-in-progress: false
+
+jobs:
+  cpanel-bootstrap:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    environment: cpanel-production
+    steps:
+      - name: Checkout approved package revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Validate bootstrapper and ensure exact source commit
+        run: |
+          python3 -m py_compile scripts/deploy_cpanel.py
+          python3 -m unittest discover -s tests -p 'test_cpanel_deploy.py' -v
+          php -l hosting-master/public/auto-update.php
+
+      - name: Provision updater and Cron via cPanel API
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_USERNAME: ${{ secrets.CPANEL_USERNAME }}
+          CPANEL_API_TOKEN: ${{ secrets.CPANEL_API_TOKEN }}
+          CPANEL_PHP_BIN: ${{ vars.CPANEL_PHP_BIN }}
+          CPANEL_HOME: ${{ vars.CPANEL_HOME }}
+        run: |
+          if [[ -z "$CPANEL_HOST" || -z "$CPANEL_USERNAME" || -z "$CPANEL_API_TOKEN" ]]; then
+            echo "### cPanel not connected" >> "$GITHUB_STEP_SUMMARY"
+            echo "Set CPANEL_HOST, CPANEL_USERNAME and CPANEL_API_TOKEN in the cpanel-production environment secrets. No changes were deployed." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          python3 scripts/deploy_cpanel.py
+          echo "### cPanel automation installed" >> "$GITHUB_STEP_SUMMARY"
+          echo "The protected updater and scheduled Cron were verified. Future approved UI releases install themselves." >> "$GITHUB_STEP_SUMMARY"
