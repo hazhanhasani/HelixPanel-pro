@@ -271,7 +271,8 @@ $_SESSION['last_seen'] = time();
 
 // Autoupdate only after a verified administrator session, never from a
 // public URL or unauthenticated API request. Finish response before network I/O.
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+if (PHP_SAPI !== 'cli-server'
+    && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
     && !isset($_GET['hp_api'])
     && is_file(__DIR__.'/auto-update.php')) {
     $updateRoot=__DIR__;
