@@ -44,7 +44,7 @@ if (PHP_VERSION_ID < 80200 || !extension_loaded('curl') || !extension_loaded('se
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('Referrer-Policy: no-referrer');
-header("Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'sha256-CgHYjdx9T69rCMOb6XjrJFGWPA5lI/9YrtN62BTL+9k='; form-action 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'self' 'sha256-CgHYjdx9T69rCMOb6XjrJFGWPA5lI/9YrtN62BTL+9k='; form-action 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'");
 header('Strict-Transport-Security: max-age=31536000');
 header('Cache-Control: no-store, private');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
