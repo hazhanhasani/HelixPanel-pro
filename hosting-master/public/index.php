@@ -193,6 +193,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
 if (empty($_SESSION['logged_in']) || (time() - (int)($_SESSION['last_seen'] ?? 0)) > 1800) {
     unset($_SESSION['logged_in']);
+    if (isset($_GET['hp_api'])) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(401);
+        echo '{"error":"unauthorized"}';
+        exit;
+    }
     http_response_code(200);
     ?>
 <!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
