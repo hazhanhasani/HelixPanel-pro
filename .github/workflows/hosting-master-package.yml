@@ -20,6 +20,8 @@ jobs:
         run: |
           php -l hosting-master/public/index.php
           php -l hosting-master/public/auto-update.php
+          php -l tests/test_hosting_updater.php
+          php tests/test_hosting_updater.php
           php -l hosting-master/config.example.php
           php -l hosting-master/private/store.php
           php -l hosting-master/public/node.php
