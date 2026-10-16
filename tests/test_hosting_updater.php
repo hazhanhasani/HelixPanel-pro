@@ -38,7 +38,18 @@ try {
         throw new RuntimeException('unexpected request ' . $url);
     };
 
+    $firstCheck=hpUpdateAvailability($private,true,$fetch);
+    check($firstCheck['available']===true, 'new release notification missing');
+    check($firstCheck['status']==='available', 'new release status must be available');
+    check($firstCheck['revision']===substr($sha,0,12), 'new release should show shortened revision');
     check(hpUpdateNow($public, $private, $fetch)==='updated', 'first update failed');
+    $currentCheck=hpUpdateAvailability($private,true,$fetch);
+    check($currentCheck['available']===false, 'installed version still shown as newer');
+    check($currentCheck['status']==='up_to_date', 'completed release not acknowledged');
+    $cachedCheck=hpUpdateAvailability($private,false,static function(): never {
+        throw new RuntimeException('Availability cache was not respected');
+    });
+    check($cachedCheck['status']==='up_to_date', 'cached release should remain current');
     foreach ($blobs as $name=>$body) {
         check(file_get_contents($public.'/'.$name)===$body, 'update mismatch: '.$name);
         check(file_get_contents($private.'/update-backups/'.$sha.'/'.str_replace('/','__',$name))
