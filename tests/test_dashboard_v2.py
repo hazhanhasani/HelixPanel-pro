@@ -38,7 +38,7 @@ class SharedDashboardTests(unittest.TestCase):
         manifest=json.loads((ROOT/"hosting-master/shared-ui.manifest.json").read_text(encoding="utf-8"))
         for relative, expected in manifest["assets"].items():
             raw=(ROOT/relative).read_bytes()
-            actual=hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\\0"+raw).hexdigest()
+            actual=hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest()
             self.assertEqual(actual,expected,relative)
 
     def test_cpanel_authenticated_api_does_not_expose_secrets(self):
