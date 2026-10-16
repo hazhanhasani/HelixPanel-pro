@@ -26,6 +26,8 @@ jobs:
           php -l hosting-master/public/license.php
           php -l hosting-master/public/assets/../../private/store.php
           php tests/master_smoke.php | grep -q 'ورود به مستر پنل'
+          python3 -m unittest discover -s tests -p 'test_dashboard_v2.py' -v
+          node --check hosting-master/public/assets/dashboard-v2.js
       - name: Build a safe upload bundle
         run: |
           python3 - <<'PY'
