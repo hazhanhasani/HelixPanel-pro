@@ -205,8 +205,22 @@ $('logout').addEventListener('click',()=>{
     $('auth-modal').showModal();
   }
 });
+function initialView(){
+  const query=new URLSearchParams(window.location.search).get('view');
+  const legacy=window.location.hash.slice(1).toLowerCase();
+  const selected=views.includes(query)?query:(views.includes(legacy)?legacy:'overview');
+  // Migrate old #license/#nodes links so URL and visible page agree.
+  if(views.includes(legacy)){
+    const url=new URL(window.location.href);
+    url.hash='';
+    if(selected==='overview')url.searchParams.delete('view');
+    else url.searchParams.set('view',selected);
+    window.history.replaceState({view:selected},'',url.pathname+url.search);
+  }
+  return selected;
+}
 window.addEventListener('popstate',()=>changeView(new URLSearchParams(window.location.search).get('view')||'overview',{history:false}));
-changeView(new URLSearchParams(window.location.search).get('view')||'overview',{history:false});
+changeView(initialView(),{history:false});
 $('update-install')?.addEventListener('click',installUpdate);
 if(hosted){refresh().catch(showError);checkUpdates();}
 else $('auth-modal').showModal();
