@@ -34,6 +34,11 @@
       </header>
       <div class="main-inner">
         <div class="live-banner"><div><strong>● مرکز مدیریت فعال</strong> · <span id="fleet-health">اطلاعات پس از ورود بارگیری می‌شود</span></div><time id="last-refresh">—</time></div>
+        <section id="update-banner" class="update-banner" aria-live="polite" hidden>
+          <div class="update-content"><strong id="update-title">نسخه جدید HelixPanel در دسترس است</strong>
+            <p id="update-description">بروزرسانی امن با پشتیبان‌گیری از فایل‌های فعلی</p></div>
+          <button type="button" class="primary" id="update-install">بروزرسانی پنل</button>
+        </section>
         <div class="welcome"><div><div class="eyebrow">PLATFORM OVERVIEW <span></span> LIVE CONTROL PLANE</div><h1 id="page-title">مدیریت هوشمند زیرساخت</h1><p id="page-subtitle">وضعیت سرویس، کاربران و منابع را از یک مرکز کنترل مدیریت کنید.</p></div><button class="primary" id="main-action">+ افزودن نود</button></div>
         <div id="error" class="notice hidden" role="alert"></div>
         <div class="infra-unavailable"><strong>آمار CPU، RAM و ترافیک هنوز در دسترس نیست.</strong> این داده‌ها پس از راه‌اندازی واقعی Node Telemetry نمایش داده می‌شوند؛ داشبورد اعداد فرضی ندارد.</div>
