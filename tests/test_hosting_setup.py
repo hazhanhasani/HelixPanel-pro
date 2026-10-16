@@ -213,6 +213,14 @@ class QuickHostingSetupTest(unittest.TestCase):
                 if len(read("users")) < license_status["max_users"]:
                     created_user=mutate("POST","users",{"name":"ci-user-001","quota_gb":10,"expires_at":expiry})
                     self.assertRegex(created_user["id"],r"^[a-f0-9]{32}$")
+                    patched=mutate("PATCH","users/"+created_user["id"],
+                        {"quota_gb":18,"expires_at":expiry})
+                    self.assertEqual(int(patched["quota_gb"]),18)
+                    self.assertEqual(patched["status"],"pending_provisioning")
+                    with self.assertRaises(AssertionError):
+                        mutate("PATCH","users/"+created_user["id"],
+                            {"quota_gb":0,"expires_at":expiry})
+                    self.assertEqual(int(next(u for u in read("users") if u["id"]==created_user["id"])["quota_gb"]),18)
                     mutate("DELETE","users/"+created_user["id"])
                 unauthenticated = urllib.request.Request(base+"?hp_api=nodes",method="GET")
                 with self.assertRaises(urllib.error.HTTPError) as denied:
