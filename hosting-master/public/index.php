@@ -114,7 +114,7 @@ function upstream(string $method, string $route, ?array $payload = null): array 
     global $apiBase, $apiToken, $standaloneStore;
     if ($standaloneStore instanceof HelixMasterStore) return $standaloneStore->handle($method,$route,$payload);
     if (!in_array($method, ['GET', 'POST', 'DELETE'], true)
-        || !preg_match('~^/api/v1/(summary|license|nodes|users)(/[A-Za-z0-9_-]{1,100})?$~D', $route)) {
+        || !preg_match('~^/api/v1/(summary|license|nodes|users)(/[A-Za-z0-9_-]{1,100})?(/enrollment)?$~D', $route)) {
         throw new RuntimeException('درخواست API مجاز نیست.');
     }
     $url = $apiBase . $route;
@@ -263,6 +263,51 @@ footer{font:11px Arial;color:#8098b0;text-align:center;padding:25px}
 }
 $_SESSION['last_seen'] = time();
 
+// Shared Control Center V3 API adapter. Server-side cPanel authentication is
+// mandatory; the browser never receives upstream credentials or database DSNs.
+if (isset($_GET['hp_api'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    $resource=(string)$_GET['hp_api'];
+    $method=(string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
+    $read=in_array($resource,['nodes','users','license','summary'],true);
+    $write=in_array($resource,['nodes','users'],true);
+    $nodeEnroll=(bool)preg_match('~^nodes/[a-f0-9]{32}/enrollment$~D',$resource);
+    $destroy=(bool)preg_match('~^(?:nodes|users)/[A-Za-z0-9_-]{1,100}$~D',$resource);
+    if (!(($method==='GET' && $read)
+        ||($method==='POST' && ($write||$nodeEnroll))
+        ||($method==='DELETE' && $destroy))) {
+        http_response_code(404);
+        echo '{"error":"unsupported_resource"}';
+        exit;
+    }
+    if ($method!=='GET') {
+        $submitted=(string)($_SERVER['HTTP_X_HELIX_CSRF']??'');
+        if ($submitted==='' || !hash_equals((string)$_SESSION['csrf'],$submitted)) {
+            http_response_code(403);
+            echo '{"error":"invalid_csrf"}';
+            exit;
+        }
+    }
+    try {
+        $payload=null;
+        if ($method==='POST' && !$nodeEnroll) {
+            $raw=file_get_contents('php://input',false,null,0,16385);
+            if (!is_string($raw) || strlen($raw)>16384) throw new RuntimeException('درخواست بیش از حد مجاز است.');
+            $payload=json_decode($raw,true,8,JSON_THROW_ON_ERROR);
+            if (!is_array($payload) || array_is_list($payload)) throw new RuntimeException('JSON نامعتبر است.');
+        }
+        $response=upstream($method,'/api/v1/'.$resource,$payload);
+        http_response_code($method==='POST' ? 201 : 200);
+        echo json_encode($response,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
+    } catch (Throwable $e) {
+        http_response_code(422);
+        error_log('HelixPanel hosted API: '.get_class($e));
+        echo json_encode(['error'=>$e instanceof RuntimeException ? $e->getMessage() : 'api_error'],JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);
+    }
+    exit;
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     try {
         $action = (string)($_POST['action'] ?? '');
@@ -318,194 +363,33 @@ try {
 }
 $notice = (string)($_SESSION['notice'] ?? '');
 unset($_SESSION['notice']);
-$enrollment = $_SESSION['enrollment'] ?? null;
-unset($_SESSION['enrollment']);
-
-// Automatic dashboard updates run only after a verified administrator session.
-// On PHP-FPM, finish the HTTP response before network IO. Without a scheduler,
-// idle hosting sites check on the next authenticated dashboard visit.
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
-    && is_file(__DIR__ . '/auto-update.php')) {
-    $hpUpdaterRoot = __DIR__;
-    $hpUpdaterPrivate = dirname($configPath);
-    register_shutdown_function(static function () use ($hpUpdaterRoot, $hpUpdaterPrivate): void {
-        if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
-        try {
-            define('HELIX_UPDATE_INTERNAL', true);
-            require_once $hpUpdaterRoot . '/auto-update.php';
-            hpUpdateTick($hpUpdaterRoot, $hpUpdaterPrivate);
-        } catch (Throwable $e) {
-            error_log('HelixPanel automatic dashboard update failed: ' . get_class($e));
-        }
-    });
+// The hosted and VPS products intentionally share the exact same HTML/CSS/JS
+// dashboard files. Only PHP's private-session authentication and API transport
+// differ from the Go bearer-token backend.
+$dashboardFile=__DIR__.'/dashboard.html';
+if (!is_file($dashboardFile)) fail(503,'Shared dashboard bundle is missing.');
+$markup=file_get_contents($dashboardFile);
+if (!is_string($markup) || strlen($markup)>300000) fail(503,'Invalid shared dashboard.');
+$csrfMeta='name="helix-csrf" content="'.csrf().'"';
+$markup=str_replace('name="helix-csrf" content=""',$csrfMeta,$markup);
+$markup=str_replace('data-helix-mode="go"','data-helix-mode="hosted"',$markup);
+$markup=str_replace([
+    'href="/logo-mark.webp"',
+    'src="/logo-mark.webp"',
+    'href="/style.css"',
+    'href="/dashboard-v2.css?v=2"',
+    'src="/app.js"',
+],[
+    'href="assets/logo-mark.webp"',
+    'src="assets/logo-mark.webp"',
+    'href="assets/style.css?v=3"',
+    'href="assets/dashboard-v2.css?v=3"',
+    'src="assets/app.js?v=3"',
+],$markup);
+if ($err !== '') {
+    $markup=str_replace('<div id="error" class="notice hidden" role="alert"></div>',
+        '<div id="error" class="notice" role="alert">'.h($err).'</div>',$markup);
 }
-
-$nodeOnline=0; $nodePending=0; $userActive=0; $userExpiring=0;
-foreach($nodes as $item){if(!is_array($item))continue; if(($item['status']??'')==='online')$nodeOnline++; if(($item['status']??'')==='pending_enrollment')$nodePending++;}
-foreach($users as $item){
- if(!is_array($item))continue;
- if(($item['status']??'')==='active')$userActive++;
- if(!empty($item['expires_at'])){$expiry=strtotime((string)$item['expires_at']); if($expiry!==false&&$expiry>=time()&&$expiry<=time()+604800)$userExpiring++;}
-}
-$licenseMaxNodes=max(1,(int)($license['max_nodes']??1));
-$licenseMaxUsers=max(1,(int)($license['max_users']??25));
-$nodeFill=min(100,(int)round(count($nodes)/$licenseMaxNodes*100));
-$userFill=min(100,(int)round(count($users)/$licenseMaxUsers*100));
-?>
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HelixPanel Master | مرکز مدیریت</title><link rel="icon" href="data:image/webp;base64,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" type="image/webp">
-<link rel="stylesheet" href="assets/master.css">
-<style>
-:root{color-scheme:dark;--bg:#080e1b;--surface:#101b2d;--panel:#121e31;--border:#243450;--text:#eef5ff;--muted:#8c9db8;--cyan:#48d5cf;--blue:#498cff;--danger:#ed6c88;--success:#3ed4a9}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.7 Tahoma,Arial,sans-serif}a{color:inherit;text-decoration:none}button,input{font:inherit}button{cursor:pointer}h1,h2,p{margin-top:0}
-.login-body{min-height:100vh;display:grid;place-items:center;background:radial-gradient(ellipse 45% 40% at 75% 15%,#133655 0,transparent 100%),radial-gradient(ellipse 50% 45% at 10% 90%,#17244c 0,transparent 100%),var(--bg);padding:20px}
-.login-card{width:min(430px,100%);padding:40px 34px;border-radius:24px;background:linear-gradient(145deg,#182843,#101827);border:1px solid #345070;box-shadow:0 20px 100px #0007}.login-card .brand-mark{margin-bottom:25px}.login-card h1{font-size:28px;margin-bottom:12px}
-.brand-mark{width:53px;height:53px;border-radius:17px;background:linear-gradient(130deg,#4d8dfb,#4edbd0);color:#071124;display:grid;place-items:center;font:bold 32px Arial}.brand-mark span{color:#c8fff7}
-.eyebrow{color:#54d1d7;font:700 11px Arial;letter-spacing:1.8px;margin:8px 0}
-.muted{color:var(--muted)}.help{margin:18px 0 0;text-align:center;font-size:11px;color:var(--muted)}
-label{display:block;color:#b5c6e2;font-size:12px;margin:0 0 7px}
-input{display:block;border:1px solid #324762;background:#0b1525;color:#fff;border-radius:10px;padding:12px 13px;width:100%;outline:0;min-height:44px;direction:auto}
-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #48d5cf25}
-.login-card form label{margin-top:26px}.login-card form button{width:100%;margin-top:18px}
-.primary{border:0;border-radius:11px;background:linear-gradient(105deg,#3b95f6,#46c8ca);color:#041421;font-weight:800;padding:10px 19px;min-height:43px;white-space:nowrap}
-.primary:hover{filter:brightness(1.1)}
-.outline{border:1px solid #334760;color:#d1e8fc;background:transparent;border-radius:10px;padding:9px 15px}
-.error,.success{padding:14px 18px;border:1px solid #8c3956;background:#501c3655;border-radius:11px;margin-bottom:16px}
-.success{border-color:#26775e;background:#153f3555}
-.dashboard-body{display:flex;min-height:100vh;background:radial-gradient(ellipse 35% 30% at 85% 0,#122e47 0,transparent 95%),var(--bg)}
-.sidebar{width:250px;flex:none;background:#0e182a;border-left:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;padding:25px 16px}
-.brand{display:flex;gap:12px;align-items:center;padding:4px 4px 26px;border-bottom:1px solid var(--border);direction:ltr}.brand strong{display:block;letter-spacing:1px;font:800 19px Arial}.brand small{display:block;color:var(--muted);font:9px Arial;letter-spacing:1.2px}
-.sidebar nav{display:flex;flex-direction:column;gap:7px;margin-top:24px}.sidebar nav a{padding:12px 14px;border-radius:10px;color:#abc0d9}.sidebar nav a:hover,.sidebar nav a:first-child{background:#1b3451;color:#62dfe3}
-.sidebar-footer{margin-top:auto;color:var(--muted);border-top:1px solid var(--border);padding:18px 9px;font-size:12px}
-.content{flex:1;min-width:0;max-width:1600px;padding:38px clamp(18px,4vw,55px)}
-.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:30px}.topbar h1{font-size:clamp(23px,3vw,34px);margin:8px 0}.topbar p{margin-bottom:0}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:23px}
-.stat,.panel{background:linear-gradient(145deg,#17253a,#101a2b);border:1px solid var(--border);border-radius:17px;box-shadow:0 12px 30px #050b162a}
-.stat{padding:22px;position:relative;overflow:hidden}.stat:after{content:"";position:absolute;inset:auto 0 0;height:2px;background:linear-gradient(90deg,transparent,#45a9e0,transparent)}
-.stat span{color:#9aaec9}.stat strong{font-size:32px;display:block;margin:10px 0;font-weight:800}.stat small{color:var(--muted)}
-.panel{padding:23px;margin-bottom:22px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:20px}.section-head h2{margin:0;font-size:19px}.section-head>span{font-size:12px;border:1px solid #294b5c;padding:5px 11px;border-radius:99px;color:#7ee1df}
-.inline-form{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:0 0 23px}.inline-form label{margin:0;flex:1;min-width:130px}.inline-form input{margin-top:6px}.inline-form button{margin-bottom:0}
-.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;text-align:right;min-width:460px}th,td{border-bottom:1px solid #24364a;padding:13px 9px}th{color:#90abc2;font-weight:500;font-size:12px}td{color:#d6e3f4}.empty{text-align:center;color:var(--muted);padding:30px}
-.danger{color:#f88bac;background:#5620354b;border:1px solid #7b3349;padding:6px 13px;border-radius:8px}
-.license-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:17px}
-.license-grid>div{background:#091727;border:1px solid #203549;padding:13px;border-radius:10px;min-width:0}
-.license-grid small{color:var(--muted);display:block;margin-bottom:6px}.license-grid strong{display:block;overflow-wrap:anywhere}
-footer{font:11px Arial;color:#8098b0;text-align:center;padding:25px}
-@media(max-width:1000px){.stats,.license-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar{width:205px}}
-@media(max-width:700px){.dashboard-body{display:block}.sidebar{position:static;width:100%;height:auto;padding:13px 16px}.sidebar .brand{padding-bottom:12px}.sidebar nav{flex-direction:row;overflow:auto;margin-top:8px}.sidebar nav a{flex:none;padding:10px 13px}.sidebar-footer{display:none}.content{padding:24px 15px}.topbar{align-items:center}.topbar h1{font-size:22px}.stats{gap:10px}.stat{padding:14px}.stat strong{font-size:25px}.panel{padding:15px}.license-grid{gap:8px}}
-@media(max-width:410px){.stats,.license-grid{grid-template-columns:1fr 1fr}.stat span{font-size:12px}.stat strong{font-size:22px}.topbar{flex-direction:column}}
-
-/* Shared project identity: original HelixPanel emblem, no CSS-only H placeholder. */
-.brand-mark{display:block;width:53px;height:53px;object-fit:contain;background:#eaf7ff!important;border-radius:15px;padding:4px;box-shadow:0 5px 20px #27b7e528}
-</style>
-<link rel="stylesheet" href="assets/dashboard-v2.css?v=2">
-<script defer src="assets/dashboard-v2.js?v=2"></script>
-</head>
-<body class="dashboard-body">
-<button type="button" class="mobile-shade" id="mobile-shade" aria-hidden="true" aria-label="بستن منو"></button>
-<aside class="sidebar" id="master-sidebar">
-<div class="brand"><img class="brand-mark" src="data:image/webp;base64,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" width="53" height="53" alt="لوگوی HelixPanel"><div><strong>HELIXPANEL</strong><small>MASTER GATEWAY</small></div></div>
-<nav aria-label="فهرست">
-<a class="current" href="#overview"><span class="nav-ico" aria-hidden="true">◫</span> نمای کلی</a>
-<a href="#nodes"><span class="nav-ico" aria-hidden="true">▣</span> نودها و سرورها</a>
-<a href="#users"><span class="nav-ico" aria-hidden="true">♧</span> مدیریت مشترکین</a>
-<a href="#license"><span class="nav-ico" aria-hidden="true">◇</span> لایسنس</a>
-</nav>
-<div class="side-meta"><small>اشتراک HelixPanel</small>
-<strong><?= !empty($license['active'])?'✦ Commercial':'✦ Community' ?></strong>
-<small><?= h(count($nodes)) ?> / <?= h($licenseMaxNodes) ?> نود · <?= h(count($users)) ?> / <?= h($licenseMaxUsers) ?> کاربر</small></div>
-<div class="sidebar-footer">Control Center V2 · PHP Gateway<br><small>cPanel / DirectAdmin</small></div>
-</aside>
-<main class="content">
-<header class="topbar"><div class="heading-group">
-<button type="button" id="mobile-menu-toggle" class="mobile-nav-button" aria-expanded="false" aria-controls="master-sidebar" aria-label="باز کردن منو">☰</button>
-<div><div class="eyebrow">HELIXPANEL / CONTROL CENTER</div><h1>مرکز فرماندهی زیرساخت</h1><p class="muted">سرورها، کاربران و مجوزها در یک مرکز</p></div></div>
-<div class="top-actions"><a class="refresh-link" href="./">↻ تازه‌سازی</a>
-<form method="post"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="logout"><button class="outline" type="submit">خروج امن</button></form>
-</div></header>
-<div class="page-context"><span class="live-pip"></span> مستر در دسترس · <time id="current-date"><?= h(gmdate('Y-m-d')) ?></time></div>
-<div class="hero"><div class="hero-tag">HELIXPANEL · CONTROL CENTER V2</div><h2>زیرساخت شما، زیر کنترل شما</h2>
-<p>وضعیت مشترکین، نودها و ظرفیت لایسنس براساس داده واقعی سیستم نمایش داده می‌شود؛ اطلاعاتی که هنوز جمع‌آوری نمی‌شود با برچسب مشخص می‌شود.</p></div>
-<div id="live-region" class="visually-hidden" aria-live="polite"></div>
-<?php if ($err !== ''): ?><div class="error" role="alert"><?= h($err) ?></div><?php endif; ?>
-<?php if ($notice !== ''): ?><div class="success" role="status"><?= h($notice) ?></div><?php endif; ?>
-<?php if (is_array($enrollment)): ?>
-<div class="success" role="status">
-<strong>کد اتصال نود (فقط همین بار نمایش داده می‌شود):</strong>
-<p>Node ID: <code><?= h($enrollment['node_id']??'') ?></code></p>
-<p>Enrollment Token: <code dir="ltr"><?= h($enrollment['enrollment_token']??'') ?></code></p>
-<small>اعتبار ۱۵ دقیقه. صدور مجدد، توکن قبلی نود را باطل می‌کند. برای نصب Node Agent به مستندات مراجعه کنید.</small>
-</div>
-<?php endif; ?>
-
-<section id="overview" class="stats" aria-label="شاخص‌های کلیدی">
-<article class="stat"><span class="stat-mark" aria-hidden="true">▣</span><span>نودهای ثبت‌شده</span><strong><?= h($summary['nodes'] ?? count($nodes)) ?></strong><small><?= h($nodePending) ?> نود در انتظار اتصال</small></article>
-<article class="stat"><span class="stat-mark" aria-hidden="true">♧</span><span>کل مشترکین</span><strong><?= h($summary['users'] ?? count($users)) ?></strong><small><?= h($userActive) ?> کاربر با وضعیت فعال</small></article>
-<article class="stat"><span class="stat-mark" aria-hidden="true">✦</span><span>نوع لایسنس</span><strong><?= !empty($license['active'])?'تجاری':'رایگان' ?></strong><small><?= !empty($license['active'])?'فعال':'Community · رایگان دائمی' ?></small></article>
-<article class="stat"><span class="stat-mark" aria-hidden="true">◎</span><span>نودهای آنلاین</span><strong><?= h($nodeOnline) ?></strong><small>براساس Heartbeat ثبت‌شده نود</small></article>
-</section>
-<div class="summary-grid" aria-label="سلامت زیرساخت و ظرفیت">
-<section class="panel"><div class="section-head"><h2>وضعیت شبکه و سرویس‌ها</h2><span>نمای عملیاتی</span></div>
-<div class="operations-card">
-<div class="operation-item"><span class="operation-icon" aria-hidden="true">▣</span><div><strong><?= h($nodeOnline) ?> نود آنلاین از <?= h(count($nodes)) ?> نود</strong><small>داده ثبت‌شده در سیستم؛ وضعیت واقعی اتصال کاربران نیازمند موتور سرویس است.</small></div></div>
-<div class="operation-item"><span class="operation-icon" aria-hidden="true">♧</span><div><strong><?= h($userExpiring) ?> مشترک نزدیک انقضا</strong><small>انقضا در هفت روز آینده بر اساس اطلاعات موجود</small></div></div>
-<div class="operation-item"><span class="operation-icon" aria-hidden="true">↗</span><div><strong>CPU · RAM · Network Traffic</strong><small>در انتظار ماژول Telemetry و موتور سرویس</small></div></div>
-</div>
-<div class="notice-unavailable"><strong>داده مصرف زنده هنوز وجود ندارد.</strong>
-برای جلوگیری از نمایش اعداد ساختگی، نمودار مصرف تا اتصال واقعی Agent Metrics غیرفعال است.</div>
-</section>
-<section class="panel"><div class="section-head"><h2>ظرفیت اشتراک</h2><span><?= !empty($license['active'])?'فعال':'Community' ?></span></div>
-<div class="capacity-header"><span>ظرفیت نودها</span><b><?= h(count($nodes)) ?> / <?= h($licenseMaxNodes) ?></b></div>
-<div class="capacity-track" role="progressbar" aria-label="ظرفیت نودها" aria-valuenow="<?= h($nodeFill) ?>" aria-valuemin="0" aria-valuemax="100"><progress class="capacity-meter" value="<?= h($nodeFill) ?>" max="100"><?= h($nodeFill) ?>%</progress></div>
-<div class="capacity-header"><span>ظرفیت کاربران</span><b><?= h(count($users)) ?> / <?= h($licenseMaxUsers) ?></b></div>
-<div class="capacity-track" role="progressbar" aria-label="ظرفیت کاربران" aria-valuenow="<?= h($userFill) ?>" aria-valuemin="0" aria-valuemax="100"><progress class="capacity-meter alt" value="<?= h($userFill) ?>" max="100"><?= h($userFill) ?>%</progress></div>
-<p class="metrics-meta capacity-meta">سقف ظرفیت توسط API اعمال می‌شود و اعداد از داده واقعی خوانده می‌شوند.</p>
-<a class="refresh-link" href="#license">جزئیات لایسنس ←</a></section>
-</div>
-<section class="panel" id="nodes"><div class="section-head"><h2>مدیریت نودها</h2><span><?= count($nodes) ?> نود</span></div>
-<form method="post" class="inline-form">
-<input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="add-node">
-<label>نام نود <input name="name" maxlength="80" required placeholder="Frankfurt-1"></label>
-<label>کشور <input name="region" maxlength="2" minlength="2" required placeholder="DE" value="DE"></label>
-<button class="primary" type="submit">افزودن نود</button>
-</form>
-<div class="search-toolbar"><label for="node-search">جست‌وجوی نود</label><input id="node-search" type="search" placeholder="نام یا کشور نود" autocomplete="off"><label for="node-filter">وضعیت</label><select id="node-filter"><option value="all">همه</option><option value="online">آنلاین</option><option value="offline">آفلاین</option><option value="pending">در انتظار</option></select><span class="search-hint"><b id="nodes-table-count"><?= h(count($nodes)) ?></b> نتیجه</span></div>
-<div class="table-wrap"><table id="nodes-table"><thead><tr><th>نام</th><th>کشور</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
-<?php foreach ($nodes as $node): if (!is_array($node)) continue; ?>
-<tr data-search="<?= h(($node['name'] ?? '').' '.($node['region'] ?? '')) ?>" data-status="<?= h(in_array(($node['status']??''),['online','offline'],true)?$node['status']:'pending') ?>"><td><?= h($node['name'] ?? '') ?></td><td><?= h($node['region'] ?? '') ?></td><td><span class="status-badge <?= h(in_array(($node['status']??''),['online','offline'],true)?$node['status']:'pending') ?>"><?= h(match($node['status'] ?? '') {'online'=>'● آنلاین','offline'=>'● آفلاین', default=>'◌ در انتظار اتصال'}) ?></span></td><td>
-<?php if ($standaloneStore): ?><form method="post" class="node-enroll"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="enroll-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="outline" type="submit">صدور کد اتصال</button></form><?php endif; ?><form method="post" data-confirm="حذف نود برگشت‌پذیر نیست. ادامه می‌دهید؟"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="delete-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="danger" type="submit">حذف</button></form></td></tr>
-<?php endforeach; ?>
-<?php if (!$nodes): ?><tr><td colspan="4" class="empty">هنوز نودی ثبت نشده است.</td></tr><?php endif; ?>
-<tr id="nodes-table-no-results" hidden><td colspan="4" class="empty">نودی مطابق جست‌وجو وجود ندارد.</td></tr>
-</tbody></table></div></section>
-<section class="panel" id="users"><div class="section-head"><h2>مدیریت مشترکین</h2><span><?= count($users) ?> مشترک</span></div>
-<form method="post" class="inline-form">
-<input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="add-user">
-<label>نام <input name="name" maxlength="80" required placeholder="customer-001"></label>
-<label>حجم (GB) <input type="number" name="quota_gb" value="20" min="1" max="100000" required></label>
-<label>انقضا <input type="date" name="expires_at" required value="<?= h(gmdate('Y-m-d', time()+30*86400)) ?>"></label>
-<button class="primary" type="submit">ایجاد مشترک</button>
-</form>
-<div class="search-toolbar"><label for="user-search">جست‌وجوی مشترک</label><input id="user-search" type="search" placeholder="نام یا شناسه · Ctrl+K" autocomplete="off"><label for="user-filter">وضعیت</label><select id="user-filter"><option value="all">همه</option><option value="active">فعال</option><option value="expired">منقضی</option><option value="pending">در انتظار</option></select><span class="search-hint"><b id="users-table-count"><?= h(count($users)) ?></b> نتیجه</span></div>
-<div class="table-wrap"><table id="users-table"><thead><tr><th>نام</th><th>حجم مجاز</th><th>انقضا</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
-<?php foreach ($users as $user): if (!is_array($user)) continue; ?>
-<tr data-search="<?= h(($user['name']??'').' '.($user['id']??'')) ?>" data-status="<?= h(in_array(($user['status']??''),['active','expired'],true)?$user['status']:'pending') ?>">
-<td><?= h($user['name']??'') ?></td><td><?= h($user['quota_gb']??'—') ?> GB</td>
-<td><time dir="ltr" datetime="<?= h($user['expires_at']??'') ?>"><?= h(!empty($user['expires_at'])?substr((string)$user['expires_at'],0,10):'—') ?></time></td>
-<td><span class="status-badge <?= h(($user['status']??'')==='active'?'online':(($user['status']??'')==='expired'?'offline':'pending')) ?>"><?= h(match($user['status']??''){'active'=>'● فعال','expired'=>'● منقضی',default=>'◌ '.($user['status']??'در انتظار')}) ?></span></td><td>
-<form method="post" data-confirm="حذف مشترک برگشت‌پذیر نیست. ادامه می‌دهید؟"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="delete-user"><input type="hidden" name="id" value="<?= h($user['id'] ?? '') ?>"><button class="danger" type="submit">حذف</button></form></td></tr>
-<?php endforeach; ?>
-<?php if (!$users): ?><tr><td colspan="5" class="empty">هنوز مشترکی ثبت نشده است.</td></tr><?php endif; ?>
-<tr id="users-table-no-results" hidden><td colspan="5" class="empty">مشترکی مطابق جست‌وجو وجود ندارد.</td></tr>
-</tbody></table></div></section>
-<section class="panel" id="license"><div class="section-head"><h2>وضعیت لایسنس</h2><span><?= !empty($license['active']) ? 'فعال' : 'Community رایگان' ?></span></div>
-<div class="license-grid">
-<div><small>شناسه لایسنس</small><strong><?= h($license['license_id'] ?? '—') ?></strong></div>
-<div><small>سقف کاربران</small><strong><?= h($license['max_users'] ?? '—') ?></strong></div>
-<div><small>سقف نودها</small><strong><?= h($license['max_nodes'] ?? '—') ?></strong></div>
-<div><small>تاریخ انقضا</small><strong><?= !empty($license['expires_at']) ? h(gmdate('Y-m-d', (int)$license['expires_at'])) : '—' ?></strong></div>
-</div>
-<p class="muted">صدور و تمدید لایسنس در هسته خصوصی انجام می‌شود؛ هیچ کلید خصوصی روی هاست نصب نمی‌شود.</p></section>
-<footer>HelixPanel Master Gateway · Developer Preview · Hosted PHP 8.2+</footer>
-</main></body></html>
+header('Content-Type: text/html; charset=utf-8');
+echo $markup;
+exit;
