@@ -401,15 +401,15 @@ $markup=str_replace('data-helix-mode="go"','data-helix-mode="hosted"',$markup);
 $markup=str_replace([
     'href="/logo-mark.webp"',
     'src="/logo-mark.webp"',
-    'href="/style.css"',
-    'href="/dashboard-v2.css?v=2"',
-    'src="/app.js"',
+    'href="/style.css?v=4"',
+    'href="/dashboard-v2.css?v=4"',
+    'src="/app.js?v=4"',
 ],[
     'href="assets/logo-mark.webp"',
     'src="assets/logo-mark.webp"',
-    'href="assets/style.css?v=3"',
-    'href="assets/dashboard-v2.css?v=3"',
-    'src="assets/app.js?v=3"',
+    'href="assets/style.css?v=4"',
+    'href="assets/dashboard-v2.css?v=4"',
+    'src="assets/app.js?v=4"',
 ],$markup);
 if ($err !== '') {
     $markup=str_replace('<div id="error" class="notice hidden" role="alert"></div>',
