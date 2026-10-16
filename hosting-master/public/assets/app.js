@@ -96,6 +96,39 @@ function render(){
   const details=[['نوع مجوز',l.tier],['شناسه نصب',l.installation_id],['شناسه لایسنس',l.license_id||'—'],['حداکثر نود',formatNum(l.max_nodes)],['حداکثر کاربر',formatNum(l.max_users)],['انقضا',l.expires_at?new Date(l.expires_at*1000).toLocaleString('fa-IR'):'—'],['وضعیت',l.active?'فعال':'غیرفعال / رایگان'],['توضیح',l.reason||'—']];
   $('license-details').replaceChildren();for(const [k,v] of details){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=k;dd.textContent=String(v||'—');$('license-details').append(dt,dd);}
 }
+// Same user-facing release widget in Go and cPanel builds. Hosted PHP owns
+// the installation API; it verifies CI status and file hashes server-side.
+async function checkUpdates(){
+  if(!hosted)return;
+  try{
+    const status=await api('updates');
+    const panel=$('update-banner');
+    panel.hidden=!status.available;
+    if(status.available){
+      $('update-title').textContent='نسخه جدید HelixPanel در دسترس است';
+      $('update-description').textContent='شناسه انتشار: '+(status.revision||'جدید')+' · قبل از نصب، از فایل‌های فعلی نسخه پشتیبان گرفته می‌شود.';
+    }
+  }catch{
+    // Network problems must not block normal panel operation.
+    $('update-banner').hidden=true;
+  }
+}
+async function installUpdate(){
+  if(!hosted)return;
+  if(!window.confirm('بروزرسانی نسخه جدید با پشتیبان‌گیری انجام شود؟'))return;
+  const button=$('update-install'),description=$('update-description');
+  button.disabled=true;button.textContent='در حال نصب…';
+  description.textContent='در حال دریافت، اعتبارسنجی و جایگزینی امن فایل‌های پنل. صفحه را نبندید.';
+  try{
+    const result=await api('updates/install',{method:'POST'});
+    if(!result.ok)throw new Error(result.result||'update_failed');
+    description.textContent='بروزرسانی موفق بود؛ در حال باز کردن نسخه جدید.';
+    window.location.reload();
+  }catch(error){
+    description.textContent=errMessage(error)+' · نسخه قبلی در صورت شکست جایگزینی بازیابی می‌شود.';
+    button.disabled=false;button.textContent='تلاش مجدد برای بروزرسانی';
+  }
+}
 async function refresh(){
   $('error').classList.add('hidden');
   const [nodes,users,license]=await Promise.all([api('nodes'),api('users'),api('license')]);
@@ -174,5 +207,6 @@ $('logout').addEventListener('click',()=>{
 });
 window.addEventListener('popstate',()=>changeView(new URLSearchParams(window.location.search).get('view')||'overview',{history:false}));
 changeView(new URLSearchParams(window.location.search).get('view')||'overview',{history:false});
-if(hosted){refresh().catch(showError);}
+$('update-install')?.addEventListener('click',installUpdate);
+if(hosted){refresh().then(checkUpdates).catch(showError);}
 else $('auth-modal').showModal();
