@@ -220,7 +220,10 @@ function hpUpdateTick(string $root, string $private, bool $force = false, ?calla
         if (!$force && time() - (int)($state['checked_at'] ?? 0) < 6*3600) return 'throttled';
         try {
             $result = hpUpdateNow($root, $private, $fetch);
-            $status = ['checked_at' => time(), 'result' => $result];
+            // A freshly published commit may still be running CI.
+            // Recheck in 15 minutes rather than waiting another six hours.
+            $checked = $result === 'awaiting_ci' ? time() - 6*3600 + 900 : time();
+            $status = ['checked_at' => $checked, 'result' => $result];
         } catch (Throwable $e) {
             $status = ['checked_at' => time()-5*3600, 'result' => 'error'];
             error_log('HelixPanel updater: ' . $e->getMessage());
@@ -246,7 +249,7 @@ if (PHP_SAPI === 'cli' && realpath((string)($_SERVER['SCRIPT_FILENAME'] ?? '')) 
         fwrite(STDERR, "HelixPanel has not been installed.\n");
         exit(1);
     }
-    $status = hpUpdateTick($root, $private, true);
+    $status = hpUpdateTick($root, $private, in_array('--force', $_SERVER['argv'] ?? [], true));
     echo "Dashboard update: $status\n";
     exit($status === 'error' ? 1 : 0);
 }
