@@ -99,19 +99,16 @@ function hpUpdateSafePath(string $root, string $relative): string {
 }
 
 /**
- * Performs an atomic-per-file update with pre-downloaded Git blob verification,
- * and restores files from a private backup if any rename fails.
+ * Returns a SHA only for a successful, main-branch, push-triggered package run.
+ * No arbitrary user-supplied URL, branch or target is accepted.
  */
-function hpUpdateNow(string $root, string $private, ?callable $fetch = null): string {
+function hpApprovedRevision(?callable $fetch = null): ?string {
     $fetch ??= 'hpUpdateGet';
     $repo = HP_UPDATER_REPO;
-    // Select the latest approved package, not the latest commit on main.
-    // Docs-only commits do not trigger packaging and must never block upgrades.
     $run = hpUpdateJson($fetch(
         "https://api.github.com/repos/$repo/actions/workflows/" . HP_UPDATER_WORKFLOW .
         "/runs?branch=main&per_page=25", 196608
     ));
-    $sha = null;
     foreach (($run['workflow_runs'] ?? []) as $entry) {
         $candidate = $entry['head_sha'] ?? null;
         if (($entry['conclusion'] ?? '') === 'success'
@@ -119,10 +116,57 @@ function hpUpdateNow(string $root, string $private, ?callable $fetch = null): st
             && ($entry['head_branch'] ?? '') === 'main'
             && is_string($candidate)
             && preg_match('/^[0-9a-f]{40}$/D', $candidate)) {
-            $sha = $candidate;
-            break;
+            return $candidate;
         }
     }
+    return null;
+}
+
+/**
+ * Read-only availability for the authenticated dashboard. Cache a bounded
+ * result privately for 10 minutes; force refresh on demand is optional.
+ * Unknown installed revision is treated as outdated, never as up-to-date.
+ */
+function hpUpdateAvailability(string $private, bool $force = false, ?callable $fetch = null): array {
+    if (!is_dir($private) || is_link($private)) throw new RuntimeException('Invalid update state');
+    $cache = $private . '/dashboard-available.json';
+    $stored = is_file($cache) ? json_decode((string)file_get_contents($cache), true) : null;
+    $now = time();
+    if (!$force && is_array($stored)
+        && $now - (int)($stored['checked_at'] ?? 0) < 600
+        && preg_match('/^[a-f0-9]{40}$/D', (string)($stored['revision'] ?? ''))) {
+        $latest = $stored['revision'];
+    } else {
+        $latest = hpApprovedRevision($fetch);
+        if ($latest !== null) {
+            $tmp = $private . '/.available-' . bin2hex(random_bytes(5));
+            if (file_put_contents($tmp, json_encode([
+                'revision'=>$latest,'checked_at'=>$now
+            ], JSON_THROW_ON_ERROR), LOCK_EX) !== false) {
+                @chmod($tmp, 0600);
+                @rename($tmp, $cache);
+            }
+        }
+    }
+    $current = is_file($private . '/dashboard-revision')
+        ? trim((string)file_get_contents($private . '/dashboard-revision')) : '';
+    if ($latest === null) return ['available'=>false,'status'=>'awaiting_ci','revision'=>null,'installed_revision'=>$current ?: null];
+    return [
+        'available'=>$latest !== $current,
+        'status'=>$latest === $current ? 'up_to_date' : 'available',
+        'revision'=>substr($latest,0,12),
+        'installed_revision'=>$current ? substr($current,0,12) : null,
+    ];
+}
+
+/**
+ * Performs an atomic-per-file update with pre-downloaded Git blob verification,
+ * and restores files from a private backup if any rename fails.
+ */
+function hpUpdateNow(string $root, string $private, ?callable $fetch = null): string {
+    $fetch ??= 'hpUpdateGet';
+    $repo = HP_UPDATER_REPO;
+    $sha = hpApprovedRevision($fetch);
     if ($sha === null) return 'awaiting_ci';
 
     $currentPath = $private . '/dashboard-revision';
