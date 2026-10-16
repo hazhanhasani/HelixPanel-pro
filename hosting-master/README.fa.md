@@ -32,6 +32,23 @@ schema.sql                  # دیتابیس
 README.fa.md
 ```
 
+## داشبورد Control Center V2
+
+داشبورد واقعی نسخه هاست از رابط قدیمی به **Control Center V2** ارتقا یافته است:
+- سایدبار حرفه‌ای، موبایل RTL با منوی کشویی، تاریخ شمسی، پشتیبانی از کیبورد و نمایش وضعیت واقعی اتصال نود.
+- جست‌وجو و فیلتر روی جدول‌های مشترکین و نودها، نمایش انقضا، تأیید عملیات حذف.
+- کارت‌های مدیریتی واقعی، ظرفیت مجوز، تعداد نودهای آنلاین و مشترکین در آستانه انقضا.
+- تا پیاده‌سازی Telemetry و Xray Adapter، نمودار ترافیک و CPU/RAM **داده ساختگی تولید نمی‌کنند**.
+- بدون نیاز به Node.js یا CDN روی هاست؛ CSS/JS از همان دامنه ارائه می‌شوند و دسترسی‌های PHP Session/CSRF حفظ می‌شوند.
+
+### ارتقای امن یک نصب موجود cPanel/DirectAdmin
+
+از [خروجی CI بسته هاست](https://github.com/hazhanhasani/HelixPanel-pro/actions/workflows/hosting-master-package.yml)، فایل `HelixPanel-Dashboard-V2-Update.zip` را بگیر. **قبل از جایگزینی فایل‌ها از `public_html/index.php` و `public_html/assets/` نسخه پشتیبان بگیر.**
+
+فایل ZIP را در `public_html` دامنه مستر Extract کن؛ شامل `index.php`، `assets/master.css`، `assets/dashboard-v2.css`، `assets/dashboard-v2.js` و لوگو است. پوشه بیرون از `public_html/.helixpanel-master`، دیتابیس، `node.php`، `license.php` و `setup.php` تغییر نمی‌کنند. پس از آپلود، صفحه را Hard Refresh کن. برای بازگشت به نسخه قبل، فایل‌های بکاپ `index.php` و `assets/` را برگردان.
+
+**نکته:** به‌روزرسانی GitHub به‌صورت خودکار فایل‌های یک هاست از قبل نصب‌شده را تغییر نمی‌دهد؛ بسته فوق برای اعمال نسخه جدید روی هاست است. در نصب تازه، فایل‌های V2 در بسته کامل حضور دارند.
+
 ## ⚡ نصب سریع تحت وب — بدون SSH یا phpMyAdmin
 
 در **cPanel** و **DirectAdmin** نصب اولیه تقریباً یکسان است:
