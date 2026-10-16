@@ -7,6 +7,7 @@ const views=['overview','nodes','users','license'];
 let state = {nodes: [], users: [], license: null};
 let activeView = 'overview';
 let createType = 'node';
+let editUserId = null;
 const viewTitles = {
   overview: ['نمای کلی','مدیریت هوشمند زیرساخت','وضعیت سرویس، کاربران و منابع را از یک مرکز کنترل مدیریت کنید.'],
   nodes:['مدیریت نودها','مدیریت سرورها و نودها','ثبت سرور و آماده‌سازی برای اتصال امن Agent.'],
@@ -57,6 +58,13 @@ function renderTable(target, rows, columns, kind, deletable){
         await refresh();
       }catch(err){showError(err)}
     });cell.appendChild(enroll);
+  }
+  if(kind==='users'){
+    const edit=document.createElement('button');
+    edit.className='quiet';edit.textContent='ویرایش';
+    edit.setAttribute('aria-label','ویرایش سهمیه و انقضای '+obj.name);
+    edit.addEventListener('click',()=>editUser(obj));
+    cell.appendChild(edit);
   }
   const b=document.createElement('button');b.className='destructive';b.textContent='حذف';b.setAttribute('aria-label','حذف '+obj.name);b.addEventListener('click',async()=>{
     if(!confirm('«'+obj.name+'» حذف شود؟'))return;
@@ -160,8 +168,25 @@ function changeView(view,{history=true}={}){
   }
   window.scrollTo({top:0,behavior:'instant'});
 }
+function editUser(user){
+  createType='edit-user';editUserId=user.id;
+  $('create-title').textContent='ویرایش مشترک';
+  $('create-description').textContent='سهمیه و تاریخ انقضا ویرایش می‌شود؛ وضعیت سرویس تا اتصال Agent تغییری نمی‌کند.';
+  $('region-field').classList.add('hidden');
+  $('quota-field').classList.remove('hidden');
+  $('expiry-field').classList.remove('hidden');
+  $('entity-region').required=false;
+  $('entity-quota').required=true;
+  $('entity-expiry').required=true;
+  $('entity-name').value=user.name;
+  $('entity-name').readOnly=true;
+  $('entity-quota').value=String(user.quota_gb);
+  $('entity-expiry').value=String(user.expires_at||'').replace(' ','T').slice(0,10);
+  $('create-modal').showModal();
+  $('entity-quota').focus();
+}
 function createForm(type){
-  createType=type;$('create-title').textContent=type==='node'?'افزودن نود':'ایجاد مشترک';
+  createType=type;editUserId=null;$('entity-name').readOnly=false;$('create-title').textContent=type==='node'?'افزودن نود':'ایجاد مشترک';
   $('create-description').textContent=type==='node'?'فقط ثبت اولیه؛ نصب Agent هنوز پیاده‌سازی نشده است.':'حساب تا زمان اتصال موتور سرویس، در انتظار ایجاد می‌ماند.';
   $('region-field').classList.toggle('hidden',type!=='node');$('quota-field').classList.toggle('hidden',type==='node');$('expiry-field').classList.toggle('hidden',type==='node');
   $('entity-region').required=type==='node';$('entity-quota').required=type==='user';$('entity-expiry').required=type==='user';
@@ -177,7 +202,19 @@ $('main-action').addEventListener('click',async()=>{if(activeView==='license'){t
 $('create-form').addEventListener('submit',async(e)=>{
   e.preventDefault();const name=$('entity-name').value.trim();
   const payload=createType==='node'?{name,region:$('entity-region').value.trim().toUpperCase()}:{name,quota_gb:Number($('entity-quota').value),expires_at:new Date($('entity-expiry').value+'T23:59:59Z').toISOString()};
-  try{await api(createType==='node'?'nodes':'users',{method:'POST',body:JSON.stringify(payload)});$('create-modal').close();await refresh()}catch(err){$('create-modal').close();showError(err)}
+  try{
+    if(createType==='edit-user'){
+      await api('users/'+encodeURIComponent(editUserId),{
+        method:'PATCH',
+        body:JSON.stringify({quota_gb:Number($('entity-quota').value),
+          expires_at:new Date($('entity-expiry').value+'T23:59:59Z').toISOString()})
+      });
+    }else{
+      await api(createType==='node'?'nodes':'users',{method:'POST',body:JSON.stringify(payload)});
+    }
+    $('create-modal').close();await refresh();
+  }catch(err){showError(err)}
+
 });
 $('cancel-create').addEventListener('click',()=>$('create-modal').close());
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>changeView(b.dataset.view)));
