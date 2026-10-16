@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#10121a">
+  <meta name="helix-csrf" content="">
+  <title>HelixPanel — Control Center</title>
+  <link rel="icon" href="/logo-mark.webp" type="image/webp">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/dashboard-v2.css?v=2">
+  <script src="/app.js" defer></script>
+</head>
+<body data-helix-mode="go">
+  <div class="layout">
+    <aside class="sidebar" aria-label="ناوبری اصلی">
+      <div class="logo">
+        <img class="logo-mark" src="/logo-mark.webp" width="47" height="47" alt="لوگوی HelixPanel">
+        <div><strong>HELIX<span>PANEL</span></strong><small>CONTROL CENTER</small></div>
+      </div>
+      <div class="menu-label">فضای کاری</div>
+      <nav class="main-menu" id="nav">
+        <button class="nav-item active" data-view="overview"><span class="symbol">◈</span> نمای کلی</button>
+        <button class="nav-item" data-view="nodes"><span class="symbol">▣</span> مدیریت نودها</button>
+        <button class="nav-item" data-view="users"><span class="symbol">♧</span> مشترکین</button>
+        <button class="nav-item" data-view="license"><span class="symbol">◇</span> لایسنس</button>
+      </nav>
+      <div class="sidebar-bottom"><span class="green-dot"></span><span>Developer Preview</span><small>v0.1.0</small></div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb"><span class="crumb-muted">Workspace</span><span class="crumb-arrow">/</span><strong id="current-page">نمای کلی</strong></div>
+        <div class="head-actions"><span class="chip"><span class="green-dot"></span> API در دسترس</span><button id="refresh" class="icon-btn" aria-label="تازه‌سازی" title="تازه‌سازی">↻</button><button type="button" id="logout" class="icon-btn" aria-label="خروج امن" title="خروج امن">⇥</button><div class="avatar" title="مدیر">A</div></div>
+      </header>
+      <div class="main-inner">
+        <div class="live-banner"><div><strong>● مرکز مدیریت فعال</strong> · <span id="fleet-health">اطلاعات پس از ورود بارگیری می‌شود</span></div><time id="last-refresh">—</time></div>
+        <div class="welcome"><div><div class="eyebrow">PLATFORM OVERVIEW <span></span> LIVE CONTROL PLANE</div><h1 id="page-title">مدیریت هوشمند زیرساخت</h1><p id="page-subtitle">وضعیت سرویس، کاربران و منابع را از یک مرکز کنترل مدیریت کنید.</p></div><button class="primary" id="main-action">+ افزودن نود</button></div>
+        <div id="error" class="notice hidden" role="alert"></div>
+        <div class="infra-unavailable"><strong>آمار CPU، RAM و ترافیک هنوز در دسترس نیست.</strong> این داده‌ها پس از راه‌اندازی واقعی Node Telemetry نمایش داده می‌شوند؛ داشبورد اعداد فرضی ندارد.</div>
+        <section id="overview" class="view active">
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-top"><span>کل نودها</span><span class="stat-symbol purple">▣</span></div><div class="stat-value" id="stat-nodes">—</div><small>نودهای ثبت‌شده</small><div class="card-line purple-line"></div></div>
+            <div class="stat-card"><div class="stat-top"><span>کل مشترکین</span><span class="stat-symbol aqua">♧</span></div><div class="stat-value" id="stat-users">—</div><small>اشتراک‌های ثبت‌شده</small><div class="card-line aqua-line"></div></div>
+            <div class="stat-card"><div class="stat-top"><span>نودهای متصل</span><span class="stat-symbol orange">◎</span></div><div class="stat-value" id="stat-connected">—</div><small>بر اساس آخرین Heartbeat نودها</small><div class="card-line orange-line"></div></div>
+            <div class="stat-card"><div class="stat-top"><span>نوع لایسنس</span><span class="stat-symbol pink">◇</span></div><div class="stat-value stat-word" id="stat-license">—</div><small id="stat-license-caption">بررسی وضعیت</small><div class="card-line pink-line"></div></div>
+          </div>
+          <div class="panels">
+            <section class="panel"><div class="panel-head"><div><span class="section-tag">INFRASTRUCTURE</span><h2>سرورها و نودها</h2></div><button class="quiet" data-go="nodes">مشاهده همه ←</button></div><div id="overview-nodes" class="table-wrap"></div></section>
+            <section class="panel panel-side"><div class="panel-head"><div><span class="section-tag">ENTITLEMENTS</span><h2>ظرفیت لایسنس</h2></div></div><div class="capacity"><div class="capacity-row"><span>نودها</span><b id="nodes-fraction">—</b></div><div class="progress"><div id="nodes-progress" class="progress-fill"></div></div><div class="capacity-row"><span>مشترکین</span><b id="users-fraction">—</b></div><div class="progress"><div id="users-progress" class="progress-fill aqua-fill"></div></div></div><div class="separator"></div><div class="explain"><span class="explain-icon">✳</span><p>این نسخه، هسته API و لایسنس را نمایش می‌دهد. اتصال واقعی به Xray و Sing-box در مرحله Agent انجام می‌شود.</p></div></section>
+          </div>
+          <section class="panel"><div class="panel-head"><div><span class="section-tag">SUBSCRIBERS</span><h2>آخرین مشترکین</h2></div><button class="quiet" data-go="users">مشاهده همه ←</button></div><div id="overview-users" class="table-wrap"></div></section>
+        </section>
+        <section id="nodes" class="view"><div class="panel"><div class="panel-head"><div><span class="section-tag">FLEET</span><h2>لیست نودها</h2></div><button class="primary compact" data-create="node">+ نود جدید</button></div><div class="control-search"><label class="visually-hidden" for="nodes-search">جست‌وجوی نود</label><input id="nodes-search" type="search" placeholder="جست‌وجوی نود یا کشور" autocomplete="off"><select id="nodes-filter" aria-label="فیلتر وضعیت نود"><option value="all">همه وضعیت‌ها</option><option value="online">آنلاین</option><option value="offline">آفلاین</option><option value="pending_enrollment">در انتظار اتصال</option></select><small id="nodes-result-count">—</small></div><div id="nodes-table" class="table-wrap"></div></div></section>
+        <section id="users" class="view"><div class="panel"><div class="panel-head"><div><span class="section-tag">ACCOUNTS</span><h2>مشترکین</h2></div><button class="primary compact" data-create="user">+ مشترک جدید</button></div><div class="control-search"><label class="visually-hidden" for="users-search">جست‌وجوی مشترک</label><input id="users-search" type="search" placeholder="جست‌وجوی مشترک" autocomplete="off"><select id="users-filter" aria-label="فیلتر وضعیت مشترک"><option value="all">همه وضعیت‌ها</option><option value="pending_provisioning">در انتظار راه‌اندازی</option><option value="active">فعال</option><option value="expired">منقضی</option></select><small id="users-result-count">—</small></div><div id="users-table" class="table-wrap"></div></div></section>
+        <section id="license" class="view"><div class="panel"><div class="panel-head"><div><span class="section-tag">COMMERCIAL LICENSE</span><h2>اطلاعات مجوز</h2></div></div><dl id="license-details" class="details"></dl><div class="hint">شناسه نصب را برای صدور لایسنس به سامانه فروشنده ارسال کنید. کلید خصوصی امضا نباید روی سرور مشتری قرار گیرد.</div></div></section>
+      </div>
+      <footer>HELIXPANEL <span>·</span> Secure Control Plane <span>·</span> Control Center V3</footer>
+    </main>
+  </div>
+  <dialog id="auth-modal" class="modal"><form method="dialog" id="auth-form"><div class="modal-icon">H.</div><h2>ورود به مرکز کنترل</h2><p>توکن API را وارد کنید. برای امنیت، توکن فقط تا زمان باز بودن صفحه در حافظه نگه داشته می‌شود.</p><label for="api-token">Management API Token</label><input id="api-token" type="password" minlength="32" autocomplete="off" required placeholder="توکن دسترسی"><button class="primary full" type="submit">اتصال امن</button><span class="small-muted" id="auth-error"></span></form></dialog>
+  <dialog id="create-modal" class="modal"><form method="dialog" id="create-form"><h2 id="create-title">افزودن</h2><p id="create-description">اطلاعات را تکمیل کنید.</p><label for="entity-name">نام</label><input id="entity-name" required maxlength="80" autocomplete="off"><div id="region-field"><label for="entity-region">کد کشور (ISO 3166-1)</label><input id="entity-region" value="DE" maxlength="2" minlength="2" required></div><div id="quota-field" class="hidden"><label for="entity-quota">حجم مجاز (گیگابایت)</label><input id="entity-quota" type="number" min="1" max="100000" value="10"></div><div id="expiry-field" class="hidden"><label for="entity-expiry">تاریخ پایان</label><input id="entity-expiry" type="date"></div><div class="dialog-actions"><button type="button" id="cancel-create" class="secondary">انصراف</button><button class="primary" type="submit">ثبت</button></div></form></dialog>
+</body>
+</html>
