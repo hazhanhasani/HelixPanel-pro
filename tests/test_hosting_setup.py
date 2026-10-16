@@ -169,6 +169,14 @@ class QuickHostingSetupTest(unittest.TestCase):
                 with self.assertRaises(urllib.error.HTTPError) as csrf_failed:
                     opener.open(no_csrf,timeout=10)
                 self.assertEqual(csrf_failed.exception.code,403)
+                # A malicious request must not start a paid/privileged update
+                # without both a valid login and the session's CSRF header.
+                update_attempt=urllib.request.Request(
+                    base+"?hp_api="+urllib.parse.quote("updates/install"),
+                    data=b"",method="POST",headers={"Cookie":master_cookie})
+                with self.assertRaises(urllib.error.HTTPError) as update_blocked:
+                    opener.open(update_attempt,timeout=5)
+                self.assertEqual(update_blocked.exception.code,403)
                 # Exercise the same JSON create/delete operations as the Go UI.
                 def mutate(method, resource, payload=None):
                     req = urllib.request.Request(
