@@ -208,5 +208,5 @@ $('logout').addEventListener('click',()=>{
 window.addEventListener('popstate',()=>changeView(new URLSearchParams(window.location.search).get('view')||'overview',{history:false}));
 changeView(new URLSearchParams(window.location.search).get('view')||'overview',{history:false});
 $('update-install')?.addEventListener('click',installUpdate);
-if(hosted){refresh().then(checkUpdates).catch(showError);}
+if(hosted){refresh().catch(showError);checkUpdates();}
 else $('auth-modal').showModal();
