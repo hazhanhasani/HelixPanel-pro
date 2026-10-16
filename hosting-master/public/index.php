@@ -44,7 +44,7 @@ if (PHP_VERSION_ID < 80200 || !extension_loaded('curl') || !extension_loaded('se
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('Referrer-Policy: no-referrer');
-header("Content-Security-Policy: default-src 'none'; style-src 'self' 'sha256-CgHYjdx9T69rCMOb6XjrJFGWPA5lI/9YrtN62BTL+9k='; form-action 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'sha256-CgHYjdx9T69rCMOb6XjrJFGWPA5lI/9YrtN62BTL+9k='; form-action 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'");
 header('Strict-Transport-Security: max-age=31536000');
 header('Cache-Control: no-store, private');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
@@ -320,6 +320,17 @@ $notice = (string)($_SESSION['notice'] ?? '');
 unset($_SESSION['notice']);
 $enrollment = $_SESSION['enrollment'] ?? null;
 unset($_SESSION['enrollment']);
+$nodeOnline=0; $nodePending=0; $userActive=0; $userExpiring=0;
+foreach($nodes as $item){if(!is_array($item))continue; if(($item['status']??'')==='online')$nodeOnline++; if(($item['status']??'')==='pending_enrollment')$nodePending++;}
+foreach($users as $item){
+ if(!is_array($item))continue;
+ if(($item['status']??'')==='active')$userActive++;
+ if(!empty($item['expires_at'])){$expiry=strtotime((string)$item['expires_at']); if($expiry!==false&&$expiry>=time()&&$expiry<=time()+604800)$userExpiring++;}
+}
+$licenseMaxNodes=max(1,(int)($license['max_nodes']??1));
+$licenseMaxUsers=max(1,(int)($license['max_users']??25));
+$nodeFill=min(100,(int)round(count($nodes)/$licenseMaxNodes*100));
+$userFill=min(100,(int)round(count($users)/$licenseMaxUsers*100));
 ?>
 <!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -368,19 +379,35 @@ footer{font:11px Arial;color:#8098b0;text-align:center;padding:25px}
 /* Shared project identity: original HelixPanel emblem, no CSS-only H placeholder. */
 .brand-mark{display:block;width:53px;height:53px;object-fit:contain;background:#eaf7ff!important;border-radius:15px;padding:4px;box-shadow:0 5px 20px #27b7e528}
 </style>
+<link rel="stylesheet" href="assets/dashboard-v2.css?v=2">
+<script defer src="assets/dashboard-v2.js?v=2"></script>
 </head>
 <body class="dashboard-body">
-<aside class="sidebar">
+<button type="button" class="mobile-shade" id="mobile-shade" aria-hidden="true" aria-label="بستن منو"></button>
+<aside class="sidebar" id="master-sidebar">
 <div class="brand"><img class="brand-mark" src="data:image/webp;base64,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" width="53" height="53" alt="لوگوی HelixPanel"><div><strong>HELIXPANEL</strong><small>MASTER GATEWAY</small></div></div>
 <nav aria-label="فهرست">
-<a href="#overview">◈ نمای کلی</a><a href="#nodes">▣ مدیریت نودها</a>
-<a href="#users">♧ مشترکین</a><a href="#license">◇ لایسنس</a>
+<a class="current" href="#overview"><span class="nav-ico" aria-hidden="true">◫</span> نمای کلی</a>
+<a href="#nodes"><span class="nav-ico" aria-hidden="true">▣</span> نودها و سرورها</a>
+<a href="#users"><span class="nav-ico" aria-hidden="true">♧</span> مدیریت مشترکین</a>
+<a href="#license"><span class="nav-ico" aria-hidden="true">◇</span> لایسنس</a>
 </nav>
-<div class="sidebar-footer">نسخه آزمایشی · PHP Gateway<br><small>cPanel / DirectAdmin</small></div>
+<div class="side-meta"><small>اشتراک HelixPanel</small>
+<strong><?= !empty($license['active'])?'✦ Commercial':'✦ Community' ?></strong>
+<small><?= h(count($nodes)) ?> / <?= h($licenseMaxNodes) ?> نود · <?= h(count($users)) ?> / <?= h($licenseMaxUsers) ?> کاربر</small></div>
+<div class="sidebar-footer">Control Center V2 · PHP Gateway<br><small>cPanel / DirectAdmin</small></div>
 </aside>
 <main class="content">
-<header class="topbar"><div><div class="eyebrow">CONTROL CENTER / MASTER</div><h1>مرکز مدیریت زیرساخت</h1><p class="muted">مستر مدیریتی مستقل؛ داده و ترافیک VPN فقط روی نودها</p></div>
-<form method="post"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="logout"><button class="outline" type="submit">خروج امن</button></form></header>
+<header class="topbar"><div style="display:flex;align-items:center;gap:12px">
+<button type="button" id="mobile-menu-toggle" class="mobile-nav-button" aria-expanded="false" aria-controls="master-sidebar" aria-label="باز کردن منو">☰</button>
+<div><div class="eyebrow">HELIXPANEL / CONTROL CENTER</div><h1>مرکز فرماندهی زیرساخت</h1><p class="muted">سرورها، کاربران و مجوزها در یک مرکز</p></div></div>
+<div class="top-actions"><a class="refresh-link" href="./">↻ تازه‌سازی</a>
+<form method="post"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="logout"><button class="outline" type="submit">خروج امن</button></form>
+</div></header>
+<div class="page-context"><span class="live-pip"></span> مستر در دسترس · <time id="current-date"><?= h(gmdate('Y-m-d')) ?></time></div>
+<div class="hero"><div class="hero-tag">HELIXPANEL · CONTROL CENTER V2</div><h2>زیرساخت شما، زیر کنترل شما</h2>
+<p>وضعیت مشترکین، نودها و ظرفیت لایسنس براساس داده واقعی سیستم نمایش داده می‌شود؛ اطلاعاتی که هنوز جمع‌آوری نمی‌شود با برچسب مشخص می‌شود.</p></div>
+<div id="live-region" class="visually-hidden" aria-live="polite"></div>
 <?php if ($err !== ''): ?><div class="error" role="alert"><?= h($err) ?></div><?php endif; ?>
 <?php if ($notice !== ''): ?><div class="success" role="status"><?= h($notice) ?></div><?php endif; ?>
 <?php if (is_array($enrollment)): ?>
