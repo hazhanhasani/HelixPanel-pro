@@ -21,7 +21,10 @@ const HP_UPDATER_REPO = 'hazhanhasani/HelixPanel-pro';
 const HP_UPDATER_WORKFLOW = 'hosting-master-package.yml';
 const HP_UPDATER_FILES = [
     'index.php',
+    'dashboard.html',
     'auto-update.php',
+    'assets/app.js',
+    'assets/style.css',
     'assets/master.css',
     'assets/dashboard-v2.css',
     'assets/dashboard-v2.js',
