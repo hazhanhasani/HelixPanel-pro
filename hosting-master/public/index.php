@@ -162,7 +162,7 @@ function upstream(string $method, string $route, ?array $payload = null): array 
 }
 
 $err = '';
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !isset($_GET['hp_api'])) {
     if (!validCsrf()) { fail(403, 'Invalid CSRF token. Refresh the page.'); }
     $action = (string)($_POST['action'] ?? '');
     if ($action === 'login' && empty($_SESSION['logged_in'])) {
