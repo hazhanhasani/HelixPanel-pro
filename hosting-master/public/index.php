@@ -269,26 +269,8 @@ footer{font:11px Arial;color:#8098b0;text-align:center;padding:25px}
 }
 $_SESSION['last_seen'] = time();
 
-// Autoupdate only after a verified administrator session, never from a
-// public URL or unauthenticated API request. Finish response before network I/O.
-if (PHP_SAPI !== 'cli-server'
-    && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
-    && !isset($_GET['hp_api'])
-    && is_file(__DIR__.'/auto-update.php')) {
-    $updateRoot=__DIR__;
-    $updatePrivate=dirname($configPath);
-    register_shutdown_function(static function () use ($updateRoot,$updatePrivate): void {
-        if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
-        try {
-            if (!defined('HELIX_UPDATE_INTERNAL')) define('HELIX_UPDATE_INTERNAL',true);
-            require_once $updateRoot.'/auto-update.php';
-            hpUpdateTick($updateRoot,$updatePrivate);
-        } catch (Throwable $e) {
-            error_log('HelixPanel background UI update error: '.get_class($e));
-        }
-    });
-}
-
+// On the dashboard, detect new verified releases and wait for the administrator
+// to press "بروزرسانی". Scheduled CLI Cron may still update unattended if enabled.
 // Shared Control Center V3 API adapter. Server-side cPanel authentication is
 // mandatory; the browser never receives upstream credentials or database DSNs.
 if (isset($_GET['hp_api'])) {
