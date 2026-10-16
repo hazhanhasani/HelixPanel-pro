@@ -450,12 +450,14 @@ footer{font:11px Arial;color:#8098b0;text-align:center;padding:25px}
 <label>کشور <input name="region" maxlength="2" minlength="2" required placeholder="DE" value="DE"></label>
 <button class="primary" type="submit">افزودن نود</button>
 </form>
-<div class="table-wrap"><table><thead><tr><th>نام</th><th>کشور</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
+<div class="search-toolbar"><label for="node-search">جست‌وجوی نود</label><input id="node-search" type="search" placeholder="نام یا کشور نود" autocomplete="off"><label for="node-filter">وضعیت</label><select id="node-filter"><option value="all">همه</option><option value="online">آنلاین</option><option value="offline">آفلاین</option><option value="pending">در انتظار</option></select><span class="search-hint"><b id="nodes-table-count"><?= h(count($nodes)) ?></b> نتیجه</span></div>
+<div class="table-wrap"><table id="nodes-table"><thead><tr><th>نام</th><th>کشور</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
 <?php foreach ($nodes as $node): if (!is_array($node)) continue; ?>
-<tr><td><?= h($node['name'] ?? '') ?></td><td><?= h($node['region'] ?? '') ?></td><td><?= h(match($node['status'] ?? '') {'online'=>'آنلاین','offline'=>'آفلاین', default=>'در انتظار اتصال'}) ?></td><td>
-<?php if ($standaloneStore): ?><form method="post" class="node-enroll"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="enroll-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="outline" type="submit">صدور کد اتصال</button></form><?php endif; ?><form method="post"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="delete-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="danger" type="submit">حذف</button></form></td></tr>
+<tr data-search="<?= h(($node['name'] ?? '').' '.($node['region'] ?? '')) ?>" data-status="<?= h(in_array(($node['status']??''),['online','offline'],true)?$node['status']:'pending') ?>"><td><?= h($node['name'] ?? '') ?></td><td><?= h($node['region'] ?? '') ?></td><td><span class="status-badge <?= h(in_array(($node['status']??''),['online','offline'],true)?$node['status']:'pending') ?>"><?= h(match($node['status'] ?? '') {'online'=>'● آنلاین','offline'=>'● آفلاین', default=>'◌ در انتظار اتصال'}) ?></span></td><td>
+<?php if ($standaloneStore): ?><form method="post" class="node-enroll"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="enroll-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="outline" type="submit">صدور کد اتصال</button></form><?php endif; ?><form method="post" data-confirm="حذف نود برگشت‌پذیر نیست. ادامه می‌دهید؟"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="delete-node"><input type="hidden" name="id" value="<?= h($node['id'] ?? '') ?>"><button class="danger" type="submit">حذف</button></form></td></tr>
 <?php endforeach; ?>
 <?php if (!$nodes): ?><tr><td colspan="4" class="empty">هنوز نودی ثبت نشده است.</td></tr><?php endif; ?>
+<tr id="nodes-table-no-results" hidden><td colspan="4" class="empty">نودی مطابق جست‌وجو وجود ندارد.</td></tr>
 </tbody></table></div></section>
 <section class="panel" id="users"><div class="section-head"><h2>مدیریت مشترکین</h2><span><?= count($users) ?> مشترک</span></div>
 <form method="post" class="inline-form">
@@ -465,12 +467,17 @@ footer{font:11px Arial;color:#8098b0;text-align:center;padding:25px}
 <label>انقضا <input type="date" name="expires_at" required value="<?= h(gmdate('Y-m-d', time()+30*86400)) ?>"></label>
 <button class="primary" type="submit">ایجاد مشترک</button>
 </form>
-<div class="table-wrap"><table><thead><tr><th>نام</th><th>سهمیه</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
+<div class="search-toolbar"><label for="user-search">جست‌وجوی مشترک</label><input id="user-search" type="search" placeholder="نام یا شناسه · Ctrl+K" autocomplete="off"><label for="user-filter">وضعیت</label><select id="user-filter"><option value="all">همه</option><option value="active">فعال</option><option value="expired">منقضی</option><option value="pending">در انتظار</option></select><span class="search-hint"><b id="users-table-count"><?= h(count($users)) ?></b> نتیجه</span></div>
+<div class="table-wrap"><table id="users-table"><thead><tr><th>نام</th><th>حجم مجاز</th><th>انقضا</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
 <?php foreach ($users as $user): if (!is_array($user)) continue; ?>
-<tr><td><?= h($user['name'] ?? '') ?></td><td><?= h($user['quota_gb'] ?? '—') ?> GB</td><td><?= h($user['status'] ?? 'ثبت شده') ?></td><td>
-<form method="post"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="delete-user"><input type="hidden" name="id" value="<?= h($user['id'] ?? '') ?>"><button class="danger" type="submit">حذف</button></form></td></tr>
+<tr data-search="<?= h(($user['name']??'').' '.($user['id']??'')) ?>" data-status="<?= h(in_array(($user['status']??''),['active','expired'],true)?$user['status']:'pending') ?>">
+<td><?= h($user['name']??'') ?></td><td><?= h($user['quota_gb']??'—') ?> GB</td>
+<td><time dir="ltr" datetime="<?= h($user['expires_at']??'') ?>"><?= h(!empty($user['expires_at'])?substr((string)$user['expires_at'],0,10):'—') ?></time></td>
+<td><span class="status-badge <?= h(($user['status']??'')==='active'?'online':(($user['status']??'')==='expired'?'offline':'pending')) ?>"><?= h(match($user['status']??''){'active'=>'● فعال','expired'=>'● منقضی',default=>'◌ '.($user['status']??'در انتظار')}) ?></span></td><td>
+<form method="post" data-confirm="حذف مشترک برگشت‌پذیر نیست. ادامه می‌دهید؟"><input type="hidden" name="csrf" value="<?= csrf() ?>"><input type="hidden" name="action" value="delete-user"><input type="hidden" name="id" value="<?= h($user['id'] ?? '') ?>"><button class="danger" type="submit">حذف</button></form></td></tr>
 <?php endforeach; ?>
-<?php if (!$users): ?><tr><td colspan="4" class="empty">هنوز مشترکی ثبت نشده است.</td></tr><?php endif; ?>
+<?php if (!$users): ?><tr><td colspan="5" class="empty">هنوز مشترکی ثبت نشده است.</td></tr><?php endif; ?>
+<tr id="users-table-no-results" hidden><td colspan="5" class="empty">مشترکی مطابق جست‌وجو وجود ندارد.</td></tr>
 </tbody></table></div></section>
 <section class="panel" id="license"><div class="section-head"><h2>وضعیت لایسنس</h2><span><?= !empty($license['active']) ? 'فعال' : 'Community رایگان' ?></span></div>
 <div class="license-grid">
