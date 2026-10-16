@@ -134,8 +134,20 @@ class QuickHostingSetupTest(unittest.TestCase):
                     headers={"Content-Type":"application/x-www-form-urlencoded","Cookie":master_cookie},
                     method="POST",
                 )
-                opener.open(auth_request, timeout=10)
-                master_cookie = f"hp_master={next(c for c in cookies if c.name == 'hp_master').value}"
+                # The local HTTP test server emulates HTTPS; do not follow
+                # the redirect because secure cookies are not sent over HTTP.
+                class NoRedirect(urllib.request.HTTPRedirectHandler):
+                    def redirect_request(self, request, fp, code, msg, headers, newurl):
+                        return None
+                login_client = urllib.request.build_opener(NoRedirect())
+                with self.assertRaises(urllib.error.HTTPError) as login_redirect:
+                    login_client.open(auth_request, timeout=10)
+                self.assertEqual(login_redirect.exception.code, 303)
+                from http.cookies import SimpleCookie
+                rotated_cookie = SimpleCookie()
+                rotated_cookie.load(login_redirect.exception.headers.get("Set-Cookie",""))
+                self.assertIn("hp_master", rotated_cookie)
+                master_cookie = "hp_master=" + rotated_cookie["hp_master"].value
                 dashboard = opener.open(urllib.request.Request(
                     base, headers={"Cookie":master_cookie}),timeout=10).read().decode("utf-8")
                 self.assertIn("data-helix-mode=\"hosted\"",dashboard)
