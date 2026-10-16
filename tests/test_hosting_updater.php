@@ -61,6 +61,7 @@ try {
             $valid=json_decode($fetch('https://api.github.com/repos/hazhanhasani/HelixPanel-pro/git/trees/'.str_repeat('a',40),262144),true);
             return json_encode($valid);
         }
+        if (str_ends_with($url, '/hosting-master/public/index.php')) return 'tampered index';
         return $fetch(str_replace('/'.$newSha.'/','/'.str_repeat('a',40).'/', $url),$size);
     };
     try {
