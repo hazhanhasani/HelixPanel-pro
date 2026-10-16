@@ -150,6 +150,28 @@ final class HelixMasterStore {
             }
             return ['id'=>$id];
         }
+        // Update only metadata until an engine adapter is available.
+        // Never mark a pending account as provisioned through this route.
+        if ($method==='PATCH' && preg_match('~^/api/v1/users/([a-f0-9]{32})$~D',$route,$m)) {
+            $quota=$data['quota_gb']??null;
+            $expiry=$data['expires_at']??null;
+            if (!is_int($quota) || $quota<1 || $quota>100000
+                || !is_string($expiry) || !preg_match('/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/D',$expiry)) {
+                throw new RuntimeException('اطلاعات سهمیه یا انقضا نامعتبر است.');
+            }
+            $when=DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:s\\Z',$expiry,new DateTimeZone('UTC'));
+            if (!$when || $when->format('Y-m-d\\TH:i:s\\Z')!==$expiry || $when->getTimestamp()<=time()) {
+                throw new RuntimeException('زمان انقضا معتبر نیست.');
+            }
+            $sql=$this->query('UPDATE hp_users SET quota_gb=?,expires_at=? WHERE id=?',
+                [$quota,$when->format('Y-m-d H:i:s'),$m[1]]);
+            if ($sql->rowCount()===0) {
+                $existing=$this->query('SELECT id FROM hp_users WHERE id=?',[$m[1]])->fetch();
+                if (!$existing) throw new RuntimeException('مشترک پیدا نشد.');
+            }
+            $user=$this->query('SELECT id,name,quota_gb,expires_at,status,created_at FROM hp_users WHERE id=?',[$m[1]])->fetch();
+            return $user;
+        }
         if ($method==='DELETE' && preg_match('~^/api/v1/(nodes|users)/([a-f0-9]{32})$~D',$route,$m)) {
             $table=$m[1]==='nodes'?'hp_nodes':'hp_users';
             $this->query("DELETE FROM $table WHERE id=?",[$m[2]]);
