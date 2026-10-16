@@ -60,6 +60,27 @@ jobs:
                       zf.write(path, path.relative_to(stage))
           print(output.name, output.stat().st_size, "bytes")
           PY
+      - name: Build dashboard-only upgrade package
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          root=Path('hosting-master/public')
+          paths=['index.php','assets/master.css','assets/dashboard-v2.css','assets/dashboard-v2.js','assets/logo-mark.webp']
+          with zipfile.ZipFile('HelixPanel-Dashboard-V2-Update.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in paths:
+                  source=root/name
+                  if not source.is_file():
+                      raise SystemExit(f'Missing dashboard file: {source}')
+                  z.write(source,name)
+          print('Dashboard-only archive ready; no config, database or license files are overwritten.')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HelixPanel-Dashboard-V2-Update
+          path: HelixPanel-Dashboard-V2-Update.zip
+          retention-days: 90
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: HelixPanel-Master-cPanel-DirectAdmin
