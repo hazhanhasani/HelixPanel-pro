@@ -77,7 +77,7 @@ jobs:
           import zipfile
           root=Path('hosting-master/public')
           paths=['index.php','dashboard.html','auto-update.php','assets/app.js','assets/style.css','assets/master.css','assets/dashboard-v2.css','assets/dashboard-v2.js','assets/logo-mark.webp']
-          with zipfile.ZipFile('HelixPanel-Dashboard-V2-Update.zip','w',zipfile.ZIP_DEFLATED) as z:
+          with zipfile.ZipFile('HelixPanel-Dashboard-V3-Update.zip','w',zipfile.ZIP_DEFLATED) as z:
               for name in paths:
                   source=root/name
                   if not source.is_file():
@@ -87,8 +87,8 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: HelixPanel-Dashboard-V2-Update
-          path: HelixPanel-Dashboard-V2-Update.zip
+          name: HelixPanel-Dashboard-V3-Update
+          path: HelixPanel-Dashboard-V3-Update.zip
           retention-days: 90
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
