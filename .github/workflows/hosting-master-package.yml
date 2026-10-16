@@ -33,6 +33,7 @@ jobs:
           php tests/master_smoke.php | grep -q 'ورود به مستر پنل'
           python3 -m unittest discover -s tests -p 'test_dashboard_v2.py' -v
           node --check hosting-master/public/assets/dashboard-v2.js
+          node --check hosting-master/public/assets/app.js
       - name: Build a safe upload bundle
         run: |
           python3 - <<'PY'
@@ -44,6 +45,7 @@ jobs:
           (public / "assets").mkdir(parents=True)
           private.mkdir(parents=True)
           shutil.copy2("hosting-master/public/index.php", public / "index.php")
+          shutil.copy2("hosting-master/public/dashboard.html", public / "dashboard.html")
           shutil.copy2("hosting-master/public/auto-update.php", public / "auto-update.php")
           shutil.copy2("hosting-master/public/node.php", public / "node.php")
           shutil.copy2("hosting-master/public/setup.php", public / "setup.php")
@@ -53,6 +55,8 @@ jobs:
           shutil.copy2("hosting-master/public/assets/master.css", public / "assets/master.css")
           shutil.copy2("hosting-master/public/assets/dashboard-v2.css", public / "assets/dashboard-v2.css")
           shutil.copy2("hosting-master/public/assets/dashboard-v2.js", public / "assets/dashboard-v2.js")
+          shutil.copy2("hosting-master/public/assets/style.css", public / "assets/style.css")
+          shutil.copy2("hosting-master/public/assets/app.js", public / "assets/app.js")
           shutil.copy2("hosting-master/public/assets/setup.css", public / "assets/setup.css")
           shutil.copy2("hosting-master/public/assets/logo-mark.webp", public / "assets/logo-mark.webp")
           shutil.copy2("hosting-master/config.example.php", private / "config.example.php")
@@ -72,7 +76,7 @@ jobs:
           from pathlib import Path
           import zipfile
           root=Path('hosting-master/public')
-          paths=['index.php','auto-update.php','assets/master.css','assets/dashboard-v2.css','assets/dashboard-v2.js','assets/logo-mark.webp']
+          paths=['index.php','dashboard.html','auto-update.php','assets/app.js','assets/style.css','assets/master.css','assets/dashboard-v2.css','assets/dashboard-v2.js','assets/logo-mark.webp']
           with zipfile.ZipFile('HelixPanel-Dashboard-V2-Update.zip','w',zipfile.ZIP_DEFLATED) as z:
               for name in paths:
                   source=root/name
