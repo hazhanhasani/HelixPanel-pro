@@ -41,6 +41,18 @@ class SharedDashboardTests(unittest.TestCase):
             actual=hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest()
             self.assertEqual(actual,expected,relative)
 
+    def test_update_banner_is_real_and_csrf_protected(self):
+        self.assertIn('id="update-banner"',DASH)
+        self.assertIn('id="update-install"',DASH)
+        self.assertIn("async function checkUpdates()",JS)
+        self.assertIn("async function installUpdate()",JS)
+        self.assertIn("api('updates/install',{method:'POST'})",JS)
+        self.assertIn("$updateInstall",PHP)
+        self.assertIn("hpUpdateTick(__DIR__,$private,true)",PHP)
+        self.assertIn("if ($method!=='GET')",PHP)
+        self.assertIn("hpUpdateAvailability($private)",PHP)
+        self.assertIn("hpApprovedRevision(",UPDATER)
+
     def test_cpanel_authenticated_api_does_not_expose_secrets(self):
         self.assertIn("hash_equals",PHP)
         self.assertIn("HTTP_X_HELIX_CSRF",PHP)
